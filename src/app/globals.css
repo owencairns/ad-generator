@@ -1,8 +1,21 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@layer base {
+  :root {
+    --primary: 99 102 241;   /* #6366F1 */
+    --secondary: 58 134 255;  /* #3A86FF */
+    --accent: 255 76 96;     /* #FF4C60 */
+    --neutral: 31 31 31;     /* #1F1F1F */
+    --base-100: 249 250 251; /* #F9FAFB */
+  }
+
+  [data-theme='dark'] {
+    --primary: 13 16 155;    /* #0d109b */
+    --secondary: 0 76 199;   /* #004cc7 */
+    --accent: 179 0 21;      /* #b30015 */
+    --neutral: 224 224 224;  /* #e0e0e0 */
+    --base-100: 4 5 6;      /* #040506 */
+  }
 }
 
 @theme inline {
