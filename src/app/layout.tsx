@@ -166,7 +166,7 @@ export default function RootLayout({
   const isLoginPage = pathname === '/login';
 
   return (
-    <html data-theme="bumblebee" lang="en">
+    <html data-theme="corporate" lang="en">
       <body className={inter.className}>
         <AuthContextProvider>
           {!isLoginPage && <Navbar />}
