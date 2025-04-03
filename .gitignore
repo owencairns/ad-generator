@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Backend specific ignores
+/backend/node_modules
+/backend/.env
+/backend/.env.*
+/backend/dist
+/backend/build
