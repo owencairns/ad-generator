@@ -50,7 +50,13 @@ export default function GeneratePage() {
               error: data.error
             });
 
-            if (data.status === 'completed' || data.status === 'error') {
+            if (data.status === 'completed') {
+              // Redirect to the generation detail page when complete
+              setTimeout(() => {
+                router.push(`/generate/${currentGenerationId}`);
+              }, 2000); // Give user time to see success message before redirect
+              setIsGenerating(false);
+            } else if (data.status === 'error') {
               setIsGenerating(false);
             }
           }
@@ -59,7 +65,7 @@ export default function GeneratePage() {
 
       return () => unsubscribe();
     }
-  }, [isGenerating, user, currentGenerationId]);
+  }, [isGenerating, user, currentGenerationId, router]);
 
   const handleInspirationUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -123,7 +129,7 @@ export default function GeneratePage() {
 
     // Generate a new generation ID using timestamp
     const newGenerationId = Date.now().toString();
-    
+
     try {
       setIsGenerating(true);
       setGenerationStatus(null);
@@ -177,7 +183,7 @@ export default function GeneratePage() {
 
       // Log raw response
       console.log('Raw response status:', response.status);
-      
+
       const responseData: GenerateApiResponse = await response.json();
       console.log('Response data:', responseData);
 
@@ -262,7 +268,7 @@ export default function GeneratePage() {
                 {generationStatus.status === 'completed' && (
                   <>
                     <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    <span>Ad generated successfully!</span>
+                    <span>Ad generated successfully! Redirecting...</span>
                   </>
                 )}
                 {generationStatus.status === 'error' && (
@@ -272,8 +278,8 @@ export default function GeneratePage() {
                   </>
                 )}
               </div>
-              {generationStatus.status === 'completed' && (
-                <Link href={`/generate/sample-${new Date().getTime()}`} className="btn btn-sm">View in Gallery</Link>
+              {generationStatus.status === 'completed' && currentGenerationId && (
+                <Link href={`/generate/${currentGenerationId}`} className="btn btn-sm">View in Gallery</Link>
               )}
             </div>
 

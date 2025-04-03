@@ -5,29 +5,19 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-
-// Fallback images from Unsplash
-const FALLBACK_PRODUCT_IMAGES = [
-    'https://images.unsplash.com/photo-1560343090-f0409e92791a?q=80&w=600&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=600&auto=format&fit=crop'
-];
-
-const FALLBACK_INSPIRATION_IMAGES = [
-    'https://images.unsplash.com/photo-1533262790211-4d970f0bdd20?q=80&w=600&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1592842232655-e5d345cbc2d0?q=80&w=600&auto=format&fit=crop'
-];
+import { doc, getDoc, Timestamp } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { GenerationDocument, GenerationStatus } from '@/types/generation';
 
 interface GenerationDetail {
     id: string;
     description: string;
     productImages: string[];
     inspirationImages: string[];
-    generatedImage: string;
-    status: 'completed' | 'processing' | 'error';
+    generatedImage: string | null;
+    status: GenerationStatus;
     createdAt: string;
-    platform?: string;
-    style?: string;
-    includeLogo?: boolean;
+    error?: string;
 }
 
 export default function GenerationDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
@@ -51,32 +41,36 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
             const fetchGenerationDetail = async () => {
                 try {
                     setIsLoading(true);
+                    setError(null);
 
-                    // In a real app, you would fetch this from Firestore
-                    // For now, we're using a mock for demonstration
+                    // Get document from Firestore using the correct path
+                    const generationRef = doc(db, 'generations', user.uid, 'items', id);
+                    const docSnap = await getDoc(generationRef);
 
-                    // Simulate API call
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    if (!docSnap.exists()) {
+                        throw new Error('Generation not found');
+                    }
 
-                    // For now, create mock data
-                    // In production, you'd fetch this from your database
-                    const mockGenerationDetail: GenerationDetail = {
-                        id,
-                        description: "A modern, minimalist ad for an eco-friendly water bottle that emphasizes its sleek design and sustainable materials. The ad should have a clean background with nature elements.",
-                        productImages: FALLBACK_PRODUCT_IMAGES,
-                        inspirationImages: FALLBACK_INSPIRATION_IMAGES,
-                        generatedImage: "https://images.unsplash.com/photo-1610824352934-c10d87b700cc?q=80&w=1200&auto=format&fit=crop",
-                        status: 'completed',
-                        createdAt: new Date().toISOString(),
-                        platform: 'Instagram',
-                        style: 'Modern & Minimalist',
-                        includeLogo: true
+                    const data = docSnap.data() as GenerationDocument;
+
+                    // Map Firestore data to our component's expected format
+                    const generationData: GenerationDetail = {
+                        id: docSnap.id,
+                        description: data.description,
+                        productImages: data.productImageUrls || [],
+                        inspirationImages: data.inspirationImageUrls || [],
+                        generatedImage: data.generatedImageUrl || null,
+                        status: data.status,
+                        createdAt: data.createdAt instanceof Timestamp
+                            ? data.createdAt.toDate().toISOString()
+                            : new Date().toISOString(),
+                        error: data.error
                     };
 
-                    setGenerationDetail(mockGenerationDetail);
+                    setGenerationDetail(generationData);
                 } catch (err) {
                     console.error("Error fetching generation detail:", err);
-                    setError("Failed to load generation details. Please try again.");
+                    setError(err instanceof Error ? err.message : "Failed to load generation details. Please try again.");
                 } finally {
                     setIsLoading(false);
                 }
@@ -103,6 +97,9 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                 <div className="alert alert-error">
                     <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     <span>{error}</span>
+                </div>
+                <div className="mt-4">
+                    <Link href="/dashboard" className="btn btn-primary">Back to Dashboard</Link>
                 </div>
             </div>
         );
@@ -138,41 +135,70 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                 <div className="bg-base-100 rounded-box shadow">
                     <div className="grid grid-cols-1 lg:grid-cols-2">
                         {/* Left Column - Generated Image */}
-                        <div className="p-6 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-base-300">
-                            <div className="relative bg-base-200 rounded-lg shadow-md w-full max-w-lg aspect-square">
-                                <Image
-                                    src={generationDetail.generatedImage}
-                                    alt="Generated Ad"
-                                    fill
-                                    className="object-cover rounded-lg"
-                                />
-                                <div className="absolute top-4 right-4 flex gap-2">
-                                    <button className="btn btn-circle btn-sm btn-primary">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="p-6 flex flex-col items-center justify-start border-b lg:border-b-0 lg:border-r border-base-300">
+                            <div className="relative bg-base-200 rounded-lg shadow-md w-full max-w-xl aspect-square">
+                                {generationDetail.generatedImage ? (
+                                    <Image
+                                        src={generationDetail.generatedImage}
+                                        alt="Generated Ad"
+                                        fill
+                                        className="object-contain rounded-lg"
+                                        sizes="(max-width: 1024px) 100vw, 50vw"
+                                        priority
+                                    />
+                                ) : (
+                                    <div className="flex items-center justify-center w-full h-full">
+                                        {generationDetail.status === 'processing' ? (
+                                            <div className="flex flex-col items-center gap-3">
+                                                <span className="loading loading-spinner loading-lg text-primary"></span>
+                                                <p className="text-base-content/70 text-center">Your ad is being generated...</p>
+                                            </div>
+                                        ) : generationDetail.status === 'error' ? (
+                                            <div className="flex flex-col items-center gap-3 p-4">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                <p className="text-error text-center font-medium">Generation failed</p>
+                                                <p className="text-base-content/70 text-center text-sm">{generationDetail.error || "An unknown error occurred"}</p>
+                                            </div>
+                                        ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                )}
+                                {generationDetail.generatedImage && (
+                                    <div className="absolute top-4 right-4 flex gap-2">
+                                        <button className="btn btn-circle btn-sm btn-primary">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                            </svg>
+                                        </button>
+                                        <button className="btn btn-circle btn-sm btn-primary">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            {generationDetail.generatedImage && (
+                                <div className="flex gap-4 mt-6">
+                                    <button className="btn btn-primary">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                         </svg>
+                                        Download Ad
                                     </button>
-                                    <button className="btn btn-circle btn-sm btn-primary">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    <button className="btn btn-outline">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
+                                        Edit Ad
                                     </button>
                                 </div>
-                            </div>
-                            <div className="flex gap-4 mt-6">
-                                <button className="btn btn-primary">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                    Download Ad
-                                </button>
-                                <button className="btn btn-outline">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                    Edit Ad
-                                </button>
-                            </div>
+                            )}
                         </div>
 
                         {/* Right Column - Generation Details */}
@@ -198,30 +224,28 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                                             {generationDetail.status.charAt(0).toUpperCase() + generationDetail.status.slice(1)}
                                         </span>
                                     </div>
-                                    <div>
-                                        <h3 className="font-semibold text-base-content/80 mb-2">Platform</h3>
-                                        <p className="text-base-content/80">{generationDetail.platform || 'Not specified'}</p>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-base-content/80 mb-2">Style</h3>
-                                        <p className="text-base-content/80">{generationDetail.style || 'Not specified'}</p>
-                                    </div>
                                 </div>
 
                                 {/* Product Images */}
                                 <div>
                                     <h3 className="font-semibold text-base-content/80 mb-2">Product Images</h3>
                                     <div className="grid grid-cols-2 gap-4">
-                                        {generationDetail.productImages.map((img, index) => (
-                                            <div key={`product-${index}`} className="relative bg-white rounded-lg shadow-sm aspect-square overflow-hidden">
-                                                <Image
-                                                    src={img}
-                                                    alt={`Product Image ${index + 1}`}
-                                                    fill
-                                                    className="object-cover"
-                                                />
+                                        {generationDetail.productImages.length > 0 ? (
+                                            generationDetail.productImages.map((img, index) => (
+                                                <div key={`product-${index}`} className="relative bg-white rounded-lg shadow-sm aspect-square overflow-hidden">
+                                                    <Image
+                                                        src={img}
+                                                        alt={`Product Image ${index + 1}`}
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="col-span-2 bg-base-200 rounded-lg p-4 text-center text-base-content/50">
+                                                No product images available
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
                                 </div>
 
@@ -278,33 +302,6 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                             </svg>
                             Create New Ad
                         </Link>
-                    </div>
-                </div>
-
-                {/* Similar Generations */}
-                <div className="bg-base-100 rounded-box shadow p-6">
-                    <h2 className="text-xl font-bold mb-4">Similar Generations</h2>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {[1, 2, 3, 4].map((item) => (
-                            <div key={item} className="card bg-base-200">
-                                <figure className="relative aspect-square">
-                                    <Image
-                                        src={`https://images.unsplash.com/photo-1560343${item}90-f0409e92791${item}?q=80&w=400&auto=format&fit=crop`}
-                                        alt={`Similar generation ${item}`}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                </figure>
-                                <div className="card-body p-4">
-                                    <h3 className="card-title text-sm">Product Ad #{item}</h3>
-                                    <p className="text-xs text-base-content/70">Generated 3 days ago</p>
-                                    <div className="card-actions justify-end mt-2">
-                                        <Link href={`/generate/sample-${item}`} className="btn btn-sm btn-outline">View</Link>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
                     </div>
                 </div>
             </div>
