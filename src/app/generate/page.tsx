@@ -7,17 +7,13 @@ import { db } from '../firebase';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-
-interface UploadedImage {
-  url: string;
-  file: File;
-}
-
-interface GenerationStatus {
-  status: 'processing' | 'completed' | 'error';
-  imageUrl?: string;
-  error?: string;
-}
+import {
+  UploadedImage,
+  GenerationUIStatus,
+  GenerateApiRequest,
+  GenerateApiResponse,
+  GenerationDocument
+} from '@/types/generation';
 
 export default function GeneratePage() {
   const router = useRouter();
@@ -26,8 +22,9 @@ export default function GeneratePage() {
   const [productImages, setProductImages] = useState<UploadedImage[]>([]);
   const [description, setDescription] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generationStatus, setGenerationStatus] = useState<GenerationStatus | null>(null);
+  const [generationStatus, setGenerationStatus] = useState<GenerationUIStatus | null>(null);
   const [activeTab, setActiveTab] = useState('basic'); // 'basic' or 'advanced'
+  const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
 
   const inspirationInputRef = useRef<HTMLInputElement>(null);
   const productInputRef = useRef<HTMLInputElement>(null);
@@ -40,14 +37,18 @@ export default function GeneratePage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (isGenerating && user) {
-      // Subscribe to Firestore updates
+    if (isGenerating && user && currentGenerationId) {
+      // Subscribe to Firestore updates for the specific generation
       const unsubscribe = onSnapshot(
-        doc(db, 'generatedImages', user.uid),
+        doc(db, 'generations', user.uid, 'items', currentGenerationId),
         (doc) => {
           if (doc.exists()) {
-            const data = doc.data() as GenerationStatus;
-            setGenerationStatus(data);
+            const data = doc.data() as GenerationDocument;
+            setGenerationStatus({
+              status: data.status,
+              imageUrl: data.generatedImageUrl,
+              error: data.error
+            });
 
             if (data.status === 'completed' || data.status === 'error') {
               setIsGenerating(false);
@@ -58,7 +59,7 @@ export default function GeneratePage() {
 
       return () => unsubscribe();
     }
-  }, [isGenerating, user]);
+  }, [isGenerating, user, currentGenerationId]);
 
   const handleInspirationUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -115,10 +116,19 @@ export default function GeneratePage() {
       return;
     }
 
-    setIsGenerating(true);
-    setGenerationStatus(null);
+    if (!description.trim()) {
+      alert('Please provide a description for your ad');
+      return;
+    }
 
+    // Generate a new generation ID using timestamp
+    const newGenerationId = Date.now().toString();
+    
     try {
+      setIsGenerating(true);
+      setGenerationStatus(null);
+      setCurrentGenerationId(newGenerationId);
+
       // Convert images to base64
       const productImagesBase64 = await Promise.all(
         productImages.map(async (img) => {
@@ -136,28 +146,54 @@ export default function GeneratePage() {
         })
       );
 
+      const requestData: GenerateApiRequest = {
+        description: description.trim(),
+        productImages: productImagesBase64,
+        inspirationImages: inspirationImagesBase64.length > 0 ? inspirationImagesBase64 : [],
+        userId: user.uid,
+        generationId: newGenerationId
+      };
+
+      console.log('Request data:', {
+        description: requestData.description.length,
+        productImagesCount: requestData.productImages.length,
+        inspirationImagesCount: requestData.inspirationImages?.length,
+        userId: requestData.userId,
+        generationId: requestData.generationId
+      });
+
+      // Verify data before sending
+      if (!requestData.userId || !requestData.generationId) {
+        throw new Error('Missing required fields: userId or generationId');
+      }
+
       const response = await fetch('http://localhost:3001/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          description,
-          productImages: productImagesBase64,
-          inspirationImages: inspirationImagesBase64,
-          userId: user.uid,
-        }),
+        body: JSON.stringify(requestData),
       });
 
+      // Log raw response
+      console.log('Raw response status:', response.status);
+      
+      const responseData: GenerateApiResponse = await response.json();
+      console.log('Response data:', responseData);
+
       if (!response.ok) {
-        throw new Error('Failed to start generation');
+        throw new Error(responseData.message || responseData.data?.error || 'Failed to start generation');
       }
 
-      const data = await response.json();
-      console.log('Generation started:', data);
+      console.log('Generation started successfully');
     } catch (error) {
       console.error('Error starting generation:', error);
       setIsGenerating(false);
+      setCurrentGenerationId(null);
+      setGenerationStatus({
+        status: 'error',
+        error: error instanceof Error ? error.message : 'An unknown error occurred'
+      });
       alert('Failed to start generation. Please try again.');
     }
   };

@@ -1,60 +1,118 @@
 import { Router, RequestHandler } from "express";
 import { GoogleGenAI } from "@google/genai";
-import { storage } from "../config/firebase";
+import { storage, db } from "../config/firebase";
+import sharp from "sharp";
+import {
+  GenerateRequestBody,
+  GenerateResponseData,
+  FirestoreGenerationDocument,
+  ProcessedImage,
+  GeminiContent,
+  GenerationStatus,
+} from "../types";
+import { Timestamp } from "firebase-admin/firestore";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || "" });
-
-interface GenerateRequestBody {
-  description: string;
-  inspirationImages?: string[];
-  productImages: string[];
-  userId: string;
-}
-
-interface GenerateResponseData {
-  message: string;
-  data?: {
-    imageUrl?: string;
-    error?: string;
-  };
-}
-
 const router = Router();
+
+const compressAndUploadImage = async (
+  base64Image: string,
+  userId: string,
+  generationId: string,
+  type: ProcessedImage["type"],
+  index: number
+): Promise<string> => {
+  console.log(
+    `[Storage] Processing ${type} image ${index + 1} for user ${userId}`
+  );
+  try {
+    // Extract base64 data
+    const matches = base64Image.match(/^data:([^;]+);base64,(.+)$/);
+    if (!matches) throw new Error("Invalid image format");
+    const base64Data = matches[2];
+
+    // Convert base64 to buffer
+    const imageBuffer = Buffer.from(base64Data, "base64");
+
+    // Compress image
+    const compressedBuffer = await sharp(imageBuffer)
+      .resize(1024, 1024, { fit: "inside" })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+
+    // Upload to Firebase Storage
+    const fileName = `generatedImages/${userId}/${generationId}/${type}-${
+      index + 1
+    }.jpg`;
+    const bucket = storage.bucket();
+    const file = bucket.file(fileName);
+
+    await file.save(compressedBuffer, {
+      metadata: {
+        contentType: "image/jpeg",
+      },
+    });
+
+    await file.makePublic();
+    return file.publicUrl();
+  } catch (error) {
+    console.error(`[Storage] Error processing ${type} image:`, error);
+    throw error;
+  }
+};
 
 const uploadToStorage = async (
   imageBuffer: Buffer,
-  userId: string
+  userId: string,
+  generationId: string
 ): Promise<string> => {
-  console.log(`[Storage] Starting upload for user ${userId}`);
+  console.log(
+    `[Storage] Starting upload for generated image for user ${userId}`
+  );
   try {
-    const fileName = `generatedImages/${userId}/${Date.now()}.png`;
+    const fileName = `generatedImages/${userId}/${generationId}/final-1.png`;
     console.log(`[Storage] Uploading to path: ${fileName}`);
     const bucket = storage.bucket();
     const file = bucket.file(fileName);
 
-    // Upload the image
     await file.save(imageBuffer, {
       metadata: {
         contentType: "image/png",
       },
     });
-    console.log(`[Storage] File uploaded successfully`);
 
-    // Make the file publicly accessible
     await file.makePublic();
-    console.log(`[Storage] File made public`);
-
-    // Get the public URL
-    const publicUrl = file.publicUrl();
-    console.log(`[Storage] Generated public URL: ${publicUrl}`);
-    return publicUrl;
+    return file.publicUrl();
   } catch (error) {
     console.error("[Storage] Error uploading to storage:", error);
     throw error;
   }
 };
 
-const base64ToGenerativePart = (base64String: string) => {
+const createFirestoreDocument = async (
+  userId: string,
+  generationId: string,
+  data: Omit<FirestoreGenerationDocument, "status" | "createdAt" | "updatedAt">
+) => {
+  const docRef = db
+    .collection("generations")
+    .doc(userId)
+    .collection("items")
+    .doc(generationId);
+
+  const now = Timestamp.now();
+  const docData: FirestoreGenerationDocument = {
+    ...data,
+    status: "processing",
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await docRef.set(docData);
+  return docRef;
+};
+
+const base64ToGenerativePart = (base64String: string): GeminiContent => {
   console.log("[Generate] Processing image for Gemini input");
   try {
     // Extract the mime type and base64 data from the data URL
@@ -86,7 +144,6 @@ const base64ToGenerativePart = (base64String: string) => {
   }
 };
 
-// POST /api/generate - Generate new ad images
 const handleGenerateRequest: RequestHandler = async (req, res) => {
   console.log("[Generate] Received new generation request");
   try {
@@ -95,19 +152,14 @@ const handleGenerateRequest: RequestHandler = async (req, res) => {
       inspirationImages = [],
       productImages,
       userId,
+      generationId,
     } = req.body as GenerateRequestBody;
 
-    console.log(`[Generate] Request details:
-      - User ID: ${userId}
-      - Product Images Count: ${productImages?.length}
-      - Inspiration Images Count: ${inspirationImages?.length}
-      - Description Length: ${description?.length} characters`);
-
     // Validate request
-    if (!userId) {
-      console.warn("[Generate] Missing user ID in request");
+    if (!userId || !generationId) {
+      console.warn("[Generate] Missing user ID or generation ID in request");
       res.status(400).json({
-        message: "User ID is required",
+        message: "User ID and Generation ID are required",
       } as GenerateResponseData);
       return;
     }
@@ -144,11 +196,30 @@ const handleGenerateRequest: RequestHandler = async (req, res) => {
       return;
     }
 
-    console.log(
-      "[Generate] Request validation passed, preparing Gemini prompt"
-    );
+    // Process and upload images concurrently
+    console.log("[Generate] Starting image processing and upload");
+    const [productImageUrls, inspirationImageUrls] = await Promise.all([
+      Promise.all(
+        productImages.map((img, idx) =>
+          compressAndUploadImage(img, userId, generationId, "product", idx)
+        )
+      ),
+      Promise.all(
+        inspirationImages.map((img, idx) =>
+          compressAndUploadImage(img, userId, generationId, "inspiration", idx)
+        )
+      ),
+    ]);
 
-    // Initialize Gemini model and prepare content
+    // Create Firestore document
+    const docRef = await createFirestoreDocument(userId, generationId, {
+      description,
+      productImageUrls,
+      inspirationImageUrls:
+        inspirationImageUrls.length > 0 ? inspirationImageUrls : undefined,
+    });
+
+    // Prepare Gemini prompt and generate image
     const systemMessage = `You are an AI specialized in generating creative and effective product advertisements. Your goal is to create visually appealing advertisements that showcase products clearly while maintaining engaging and professional design standards.`;
 
     const productImagesPrompt = `This is what the product looks like - make sure to maintain a clear and prominent view of the product in the generated advertisement. The product should be the focal point while incorporating it into an attractive advertisement design. NEVER CHANGE WHAT THE PRODUCT LOOKS LIKE UNLESS SPECIFIED.`;
@@ -173,122 +244,111 @@ Important Guidelines:
 - Maintain high visual quality and appeal
 - The generated image should be a complete advertisement`;
 
-    // Process product images and inspiration images separately
-    console.log(
-      `[Generate] Processing ${productImages.length} product images and ${inspirationImages.length} inspiration images`
-    );
-
-    const contents = [];
-
-    // Add the initial prompt
-    contents.push({ text: prompt });
+    const contents: GeminiContent[] = [{ text: prompt }];
 
     // Add product images with clear labeling
     try {
       for (let i = 0; i < productImages.length; i++) {
-        // Add the label first
         contents.push({
           text: `[Product Image ${
             i + 1
           }] This is the product to advertise. Maintain its exact appearance.`,
         });
-        // Then add the image
         contents.push(base64ToGenerativePart(productImages[i]));
       }
-      console.log("[Generate] Successfully processed product images");
     } catch (error) {
       console.error("[Generate] Failed to process product images:", error);
-      res.status(400).json({
-        message: "Failed to process product images",
-        data: {
-          error:
-            error instanceof Error
-              ? error.message
-              : "Unknown error processing product images",
-        },
-      } as GenerateResponseData);
-      return;
+      await docRef.update({
+        status: "error" as GenerationStatus,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to process product images",
+        updatedAt: Timestamp.now(),
+      });
+      throw error;
     }
 
     // Add inspiration images with clear labeling
     if (inspirationImages.length > 0) {
       try {
         for (let i = 0; i < inspirationImages.length; i++) {
-          // Add the label first
           contents.push({
             text: `[Inspiration Image ${
               i + 1
             }] Use this image for style and composition inspiration only.`,
           });
-          // Then add the image
           contents.push(base64ToGenerativePart(inspirationImages[i]));
         }
-        console.log("[Generate] Successfully processed inspiration images");
       } catch (error) {
         console.error(
           "[Generate] Failed to process inspiration images:",
           error
         );
-        res.status(400).json({
-          message: "Failed to process inspiration images",
-          data: {
-            error:
-              error instanceof Error
-                ? error.message
-                : "Unknown error processing inspiration images",
-          },
-        } as GenerateResponseData);
-        return;
+        await docRef.update({
+          status: "error" as GenerationStatus,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to process inspiration images",
+          updatedAt: Timestamp.now(),
+        });
+        throw error;
       }
     }
 
-    console.log(
-      "[Generate] Sending request to Gemini API with",
-      contents.length,
-      "content parts"
-    );
-
-    // Generate content with image
+    // Generate content with Gemini
     const response = await genAI.models.generateContent({
       model: "gemini-2.0-flash-exp-image-generation",
-      contents: contents,
+      contents,
       config: {
         responseModalities: ["Text", "Image"],
       },
     });
-    console.log("[Generate] Received response from Gemini API");
 
-    // Find the generated image in the response
+    // Process Gemini response
     let imageBuffer: Buffer | null = null;
     if (response.candidates?.[0]?.content?.parts) {
-      console.log("[Generate] Processing Gemini response parts");
       for (const part of response.candidates[0].content.parts) {
         if (
           part.inlineData?.mimeType?.startsWith("image/") &&
           part.inlineData.data
         ) {
           imageBuffer = Buffer.from(part.inlineData.data, "base64");
-          console.log("[Generate] Successfully extracted image from response");
           break;
         }
       }
     }
 
     if (!imageBuffer) {
-      console.error("[Generate] No image found in Gemini response");
-      throw new Error("No image generated in the response");
+      const error = new Error("No image generated in the response");
+      await docRef.update({
+        status: "error" as GenerationStatus,
+        error: error.message,
+        updatedAt: Timestamp.now(),
+      });
+      throw error;
     }
 
-    console.log("[Generate] Uploading generated image to Firebase Storage");
-    // Upload to Firebase Storage
-    const imageUrl = await uploadToStorage(imageBuffer, userId);
+    // Upload generated image
+    const generatedImageUrl = await uploadToStorage(
+      imageBuffer,
+      userId,
+      generationId
+    );
 
-    console.log("[Generate] Generation process completed successfully");
-    // Send response with the image URL
+    // Update Firestore document
+    await docRef.update({
+      status: "completed" as GenerationStatus,
+      generatedImageUrl,
+      updatedAt: Timestamp.now(),
+    });
+
+    // Send response
     res.status(200).json({
       message: "Ad generated successfully",
       data: {
-        imageUrl,
+        imageUrl: generatedImageUrl,
       },
     } as GenerateResponseData);
   } catch (error) {
