@@ -1,135 +1,63 @@
+import Image from 'next/image';
+
 export default function HomePage() {
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-base-100 text-base-content overflow-x-hidden">
+
       {/* Hero Section */}
-      <section className="hero min-h-[80vh] bg-gradient-to-br from-primary/10 to-secondary/10">
-        <div className="hero-content flex-col lg:flex-row-reverse max-w-7xl mx-auto px-4 py-12 gap-8">
-          <div className="flex-1">
-            <div className="relative rounded-lg overflow-hidden shadow-xl bg-base-100">
-              <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-secondary/20 z-0"></div>
-              <div className="grid grid-cols-2 gap-2 p-2 relative z-10">
-                <div className="aspect-square rounded bg-base-200 shadow-inner overflow-hidden">
-                  <div className="w-full h-full bg-secondary/10 flex items-center justify-center">
-                    <div className="badge badge-secondary">Before</div>
-                  </div>
-                </div>
-                <div className="aspect-square rounded bg-base-200 shadow-inner overflow-hidden">
-                  <div className="w-full h-full bg-primary/10 flex items-center justify-center">
-                    <div className="badge badge-primary">After</div>
-                  </div>
-                </div>
-                <div className="aspect-square rounded bg-base-200 shadow-inner overflow-hidden">
-                  <div className="w-full h-full bg-accent/10 flex items-center justify-center">
-                    <div className="badge badge-accent">Before</div>
-                  </div>
-                </div>
-                <div className="aspect-square rounded bg-base-200 shadow-inner overflow-hidden">
-                  <div className="w-full h-full bg-success/10 flex items-center justify-center">
-                    <div className="badge badge-success">After</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex-1">
-            <h1 className="text-5xl font-bold text-base-content">
-              <span className="text-primary">Transform</span> your products into
-              <span className="text-secondary"> stunning ads</span>
+      <section className="bg-base-100 py-12 md:py-20">
+        <div className="container mx-auto px-6">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-4xl md:text-6xl font-bold text-base-content mb-6">
+              Build ads, <span className="italic">lose effort</span>,<br />
+              <span className="text-primary">feel unstoppable.</span>
             </h1>
-            <p className="py-6 text-base-content/80 text-lg">
-              Upload stock imagery of your products and our AI-powered platform will generate beautiful,
-              conversion-focused ads tailored to your brand. Save time and boost your marketing impact.
+            <p className="text-xl text-base-content/80 mb-8 max-w-2xl mx-auto">
+              20-minute transformations designed specifically for
+              ambitious, busy marketers. Feel confident, professional,
+              clearer—without spending hours.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <button className="btn btn-primary btn-lg">Get Started</button>
-              <button className="btn btn-outline btn-secondary btn-lg">View Examples</button>
+            <button className="btn btn-primary btn-lg shadow-md mb-4 px-8">
+              Create Better Today
+            </button>
+            <p className="text-sm text-base-content/60">*7 Days free trial. Cancel anytime</p>
+          </div>
+
+          {/* Before/After Showcase */}
+          <div className="mt-16 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Before */}
+            <div className="relative rounded-3xl overflow-hidden shadow-xl">
+              <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-base-200 rounded-full px-6 py-2 z-10 font-bold">
+                Before
+              </div>
+              <div className="relative aspect-[3/4] w-full">
+                <Image
+                  src="/before.png"
+                  alt="Before - Raw product photo taken on phone"
+                  fill
+                  className="object-cover"
+                />
+              </div>
             </div>
-            <div className="stats stats-vertical lg:stats-horizontal shadow mt-8 bg-base-200">
-              <div className="stat">
-                <div className="stat-title">Happy Clients</div>
-                <div className="stat-value text-primary">2.4K+</div>
+
+            {/* After */}
+            <div className="relative rounded-3xl overflow-hidden shadow-xl">
+              <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-primary rounded-full px-6 py-2 z-10 font-bold text-primary-content">
+                After
               </div>
-              <div className="stat">
-                <div className="stat-title">Ads Generated</div>
-                <div className="stat-value text-secondary">125K+</div>
-              </div>
-              <div className="stat">
-                <div className="stat-title">Time Saved</div>
-                <div className="stat-value text-accent">98%</div>
+              <div className="relative aspect-[3/4] w-full">
+                <Image
+                  src="/after.tiff"
+                  alt="After - Professional quality ad"
+                  fill
+                  className="object-cover"
+                />
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 bg-base-100">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-base-content">How It Works</h2>
-            <p className="text-base-content/70 mt-4 max-w-3xl mx-auto">
-              Our platform makes creating professional ads as simple as 1-2-3
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="card bg-base-200 shadow-xl">
-              <div className="card-body items-center text-center">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <span className="text-2xl font-bold text-primary">1</span>
-                </div>
-                <h3 className="card-title text-base-content">Upload Product Images</h3>
-                <p className="text-base-content/70">
-                  Simply upload your product stock photos to our platform.
-                </p>
-              </div>
-            </div>
-
-            <div className="card bg-base-200 shadow-xl">
-              <div className="card-body items-center text-center">
-                <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mb-4">
-                  <span className="text-2xl font-bold text-secondary">2</span>
-                </div>
-                <h3 className="card-title text-base-content">Customize Settings</h3>
-                <p className="text-base-content/70">
-                  Choose your ad style, dimensions, and branding elements.
-                </p>
-              </div>
-            </div>
-
-            <div className="card bg-base-200 shadow-xl">
-              <div className="card-body items-center text-center">
-                <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mb-4">
-                  <span className="text-2xl font-bold text-accent">3</span>
-                </div>
-                <h3 className="card-title text-base-content">Generate & Download</h3>
-                <p className="text-base-content/70">
-                  Our AI creates multiple ad variations ready to use across platforms.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-primary/5 to-secondary/5">
-        <div className="container mx-auto px-4 text-center">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-4xl font-bold text-base-content mb-4">Ready to Transform Your Marketing?</h2>
-            <p className="text-base-content/70 mb-8">
-              Join thousands of brands who have elevated their advertising using our platform.
-            </p>
-            <div className="join">
-              <input className="input input-bordered join-item" placeholder="Your email address" />
-              <button className="btn btn-primary join-item">Start Free Trial</button>
-            </div>
-            <p className="text-xs text-base-content/50 mt-4">
-              No credit card required. 14-day free trial.
-            </p>
-          </div>
-        </div>
-      </section>
     </main>
   );
 }
