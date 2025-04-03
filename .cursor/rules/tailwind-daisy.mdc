@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+This project uses Tailwind CSS and DaisyUI with NextJS 15. This means there is NO TAILWIND CONFIG FILE. All daisy related updated must be in [globals.css](mdc:src/app/globals.css).
+
+NEVER try to make a TAILWIND CONFIG FILE.
+
+For styling:
+- ALWAYS use daisy Primary, secondary, bg, etc. for colors.
+- NEVER hardcode colors
