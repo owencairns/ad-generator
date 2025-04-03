@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sick Parallax Bento Hero</title>
+    <style>
+      /* Basic Reset & Setup */
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
+          sans-serif;
+        background-color: #f0f0f0; /* Background visible when scrolling past hero */
+        color: #333;
+      }
+
+      /* Hero Section Container */
+      .hero-section {
+        height: 100vh; /* Full viewport height */
+        overflow: hidden; /* Crucial to contain the layers */
+        position: relative; /* Anchor point for absolute children */
+        background-color: #e0e0e0; /* Fallback background */
+      }
+
+      /* Container for Image Layers - Ensures they stack correctly */
+      .image-layers {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        /* Perspective for potential 3D transforms if needed later */
+        /* perspective: 1000px; */
+      }
+
+      /* After Layer (Revealed Background) */
+      #after-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%; /* Make it tall enough to be revealed */
+        z-index: 1; /* Behind the before grid */
+        background-color: #333; /* Darker background for contrast */
+        /* The images inside will be positioned absolutely */
+        will-change: transform; /* Performance hint for JS animation */
+      }
+
+      #after-layer img {
+        position: absolute;
+        object-fit: cover;
+        opacity: 0.85; /* Slightly faded for effect */
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+      }
+
+      /* Example positions for 'after' images - Adjust as needed */
+      .after-img-1 {
+        top: 5%;
+        left: 10%;
+        width: 30%;
+        height: 40%;
+      }
+      .after-img-2 {
+        top: 15%;
+        right: 5%;
+        width: 40%;
+        height: 60%;
+      }
+      .after-img-3 {
+        bottom: 5%;
+        left: 25%;
+        width: 50%;
+        height: 45%;
+      }
+      .after-img-4 {
+        bottom: 10%;
+        right: 20%;
+        width: 25%;
+        height: 30%;
+        transform: rotate(-5deg);
+      }
+
+      /* Before Layer (Bento Grid) */
+      #before-grid {
+        position: relative; /* Changed to relative to establish stacking context above absolute 'after' layer */
+        z-index: 5; /* On top of the after layer */
+        display: grid;
+        grid-template-columns: repeat(4, 1fr); /* Example 4 columns */
+        grid-template-rows: repeat(
+          3,
+          25vh
+        ); /* Example 3 rows, adjust height as needed */
+        gap: 15px;
+        padding: 15px;
+        background-color: rgba(
+          255,
+          255,
+          255,
+          0.1
+        ); /* Slight background tint if needed */
+        backdrop-filter: blur(2px); /* Optional: blur background slightly */
+        width: calc(100% - 30px); /* Account for padding */
+        box-sizing: border-box;
+        will-change: transform; /* Performance hint for JS animation */
+        /* Important: Needs a background or content to obscure the layer below initially */
+      }
+
+      .bento-item {
+        background-color: #fff; /* White background for stock images */
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease; /* Add subtle hover effect */
+      }
+
+      .bento-item:hover {
+        transform: scale(1.03);
+        z-index: 10; /* Bring hovered item slightly forward */
+      }
+
+      .bento-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* Ensure image covers the area */
+        display: block; /* Remove extra space below image */
+      }
+
+      /* Spanning items for Bento effect */
+      .item-1 {
+        grid-column: span 2;
+        grid-row: span 1;
+      }
+      .item-2 {
+        grid-column: span 1;
+        grid-row: span 2;
+      }
+      .item-3 {
+        grid-column: span 1;
+        grid-row: span 1;
+      }
+      .item-4 {
+        grid-column: span 2;
+        grid-row: span 2;
+      }
+      .item-5 {
+        grid-column: span 1;
+        grid-row: span 1;
+      }
+      .item-6 {
+        grid-column: span 1;
+        grid-row: span 1;
+      }
+      .item-7 {
+        grid-column: span 2;
+        grid-row: span 1;
+      }
+      /* Adjust spans to fit your desired layout and image count */
+
+      /* Hero Text Content */
+      .hero-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 10; /* Above image layers */
+        color: #fff;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+      }
+
+      .hero-content h1 {
+        font-size: 3.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 800;
+        line-height: 1.1;
+      }
+
+      .hero-content p {
+        font-size: 1.3rem;
+        max-width: 600px;
+        margin-bottom: 1.5rem;
+        font-weight: 300;
+      }
+
+      .cta-button {
+        background-color: #007bff; /* Example blue */
+        color: white;
+        padding: 12px 25px;
+        border: none;
+        border-radius: 25px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+      }
+
+      .cta-button:hover {
+        background-color: #0056b3;
+        transform: translateY(-2px);
+      }
+
+      /* Dummy content below hero to enable scrolling */
+      .scroll-content {
+        height: 150vh; /* Make sure there's enough space to scroll */
+        padding: 50px;
+        background-color: #f8f9fa;
+      }
+      .scroll-content h2 {
+        margin-top: 80px; /* Add space after the hero effect ends */
+      }
+
+      /* Responsive Adjustments (Example) */
+      @media (max-width: 768px) {
+        .hero-content h1 {
+          font-size: 2.5rem;
+        }
+        .hero-content p {
+          font-size: 1.1rem;
+        }
+        /* Adjust grid for smaller screens if needed */
+        #before-grid {
+          grid-template-columns: repeat(2, 1fr);
+          grid-template-rows: repeat(
+            auto-fit,
+            minmax(150px, 1fr)
+          ); /* More adaptive rows */
+        }
+        /* Reset spans or adjust for 2 columns */
+        .item-1 {
+          grid-column: span 1;
+          grid-row: span 1;
+        }
+        .item-2 {
+          grid-column: span 1;
+          grid-row: span 2;
+        }
+        .item-3 {
+          grid-column: span 1;
+          grid-row: span 1;
+        }
+        .item-4 {
+          grid-column: span 1;
+          grid-row: span 2;
+        }
+        .item-5 {
+          grid-column: span 1;
+          grid-row: span 1;
+        }
+        .item-6 {
+          grid-column: span 1;
+          grid-row: span 1;
+        }
+        .item-7 {
+          grid-column: span 2;
+          grid-row: span 1;
+        }
+
+        #after-layer img {
+          /* Simplify 'after' on mobile maybe */
+          opacity: 0.7;
+        }
+        .after-img-1 {
+          top: 10%;
+          left: 5%;
+          width: 40%;
+          height: 30%;
+        }
+        .after-img-2 {
+          top: 20%;
+          right: 5%;
+          width: 50%;
+          height: 40%;
+        }
+        .after-img-3 {
+          bottom: 5%;
+          left: 15%;
+          width: 70%;
+          height: 35%;
+        }
+        .after-img-4 {
+          display: none;
+        } /* Hide one for simplicity */
+      }
+    </style>
+  </head>
+  <body>
+    <section class="hero-section">
+      <div class="image-layers">
+        <!-- AFTER Layer (Revealed Background) -->
+        <div id="after-layer">
+          <!-- Use more dynamic/professional "after" images here -->
+          <img
+            src="https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTV8fHByb2R1Y3QlMjBwaG90b2dyYXBoeSUyMHNob2V8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60"
+            alt="Cool After Image 1 - Shoe Ad"
+            class="after-img-1"
+          />
+          <img
+            src="https://images.unsplash.com/photo-1627308594190-a057cd4bfac8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8cHJvZHVjdCUyMHBob3RvZ3JhcGh5fGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60"
+            alt="Cool After Image 2 - Cosmetic Ad"
+            class="after-img-2"
+          />
+          <img
+            src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cHJvZHVjdCUyMHNob2V8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60"
+            alt="Cool After Image 3 - Sneaker Ad"
+            class="after-img-3"
+          />
+          <img
+            src="https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHByb2R1Y3QlMjBwaG90b2dyYXBoeXxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
+            alt="Cool After Image 4 - Drink Ad"
+            class="after-img-4"
+          />
+        </div>
+
+        <!-- BEFORE Layer (Bento Grid) -->
+        <div id="before-grid">
+          <!-- Use basic "stock photo" style images here -->
+          <div class="bento-item item-1">
+            <img
+              src="https://images.unsplash.com/photo-1560769629-975ec94e6a86?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8c2hvZXxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
+              alt="Before Image 1 - Basic Shoe"
+            />
+          </div>
+          <div class="bento-item item-2">
+            <img
+              src="https://images.unsplash.com/photo-158539900131_L17011132d1e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8Ym90dGxlfGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60"
+              alt="Before Image 2 - Simple Bottle"
+            />
+          </div>
+          <div class="bento-item item-3">
+            <img
+              src="https://images.unsplash.com/photo-1559056199-641a0ac4055e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Y29zbWV0aWNzJTIwcHJvZHVjdHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
+              alt="Before Image 3 - Basic Cosmetic"
+            />
+          </div>
+          <div class="bento-item item-4">
+            <img
+              src="https://images.unsplash.com/photo-1618354691373-d851c5c3a990?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8dHNoaXJ0fGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60"
+              alt="Before Image 4 - Plain T-shirt"
+            />
+          </div>
+          <div class="bento-item item-5">
+            <img
+              src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cHJvZHVjdHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
+              alt="Before Image 5 - Simple Watch"
+            />
+          </div>
+          <div class="bento-item item-6">
+            <img
+              src="https://images.unsplash.com/photo-1546868871-7041f2a55e12?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8c21hcnQlMjB3YXRjaHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
+              alt="Before Image 6 - Basic Smartwatch"
+            />
+          </div>
+          <div class="bento-item item-7">
+            <img
+              src="https://images.unsplash.com/photo-1572635196237-14b3f281503f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8cHJvZHVjdHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
+              alt="Before Image 7 - Basic Sunglasses"
+            />
+          </div>
+          <!-- Add more items as needed -->
+        </div>
+      </div>
+
+      <!-- Text Content Overlay -->
+      <div class="hero-content">
+        <h1>Transform Stock Photos into<br />Scroll-Stopping Ads</h1>
+        <p>
+          Upload your basic product images. Our AI generates professional,
+          high-converting advertisements in seconds. See the magic happen.
+        </p>
+        <a href="#learn-more" class="cta-button">Try The Demo</a>
+      </div>
+    </section>
+
+    <!-- Dummy Content Section To Enable Scrolling -->
+    <section id="learn-more" class="scroll-content">
+      <h2>How It Works</h2>
+      <p>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
+        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+        veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+        commodo consequat.
+      </p>
+      <p>
+        Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
+        dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
+        proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+      </p>
+      <p>
+        Curabitur pretium tincidunt lacus. Nulla gravida orci a odio. Nullam
+        varius, turpis et commodo pharetra, est eros bibendum elit, nec luctus
+        magna felis sollicitudin mauris. Integer in mauris eu nibh euismod
+        gravida. Duis ac tellus et risus vulputate vehicula.
+      </p>
+      <p>
+        Donec lobortis risus a elit. Etiam tempor. Ut ullamcorper, ligula eu
+        tempor congue, eros est euismod turpis, id tincidunt sapien risus a
+        quam. Maecenas fermentum consequat mi. Donec fermentum. Pellentesque
+        malesuada nulla a mi. Duis sapien sem, aliquet nec, commodo eget,
+        consequat quis, neque. Aliquam faucibus, elit ut dictum aliquet, felis
+        nisl adipiscing sapien, sed malesuada diam lacus eget erat. Cras mollis
+        scelerisque nunc. Nullam arcu. Aliquam consequat.
+      </p>
+      <p>
+        Curabitur augue lorem, dapibus quis, laoreet et, pretium ac, nisi.
+        Aenean magna nisl, mollis quis, molestie eu, feugiat in, orci. In hac
+        habitasse platea dictumst.
+      </p>
+    </section>
+
+    <script>
+      const beforeGrid = document.getElementById("before-grid");
+      const afterLayer = document.getElementById("after-layer");
+      const heroSection = document.querySelector(".hero-section");
+
+      // Store initial styles if needed, though not strictly necessary here
+      // const initialBeforeTransform = beforeGrid.style.transform;
+      // const initialAfterTransform = afterLayer.style.transform;
+
+      let ticking = false; // Optimization flag for requestAnimationFrame
+
+      function handleScroll() {
+        const scrollY = window.scrollY;
+        const heroHeight = heroSection.offsetHeight;
+
+        // Only run updates if within the hero viewport area for efficiency
+        if (scrollY <= heroHeight) {
+          // Adjust these multipliers to control the parallax speed
+          // Before grid moves faster (e.g., 1.2x scroll speed)
+          // After layer moves slower (e.g., 0.5x scroll speed)
+          const beforeTranslateY = -scrollY * 0.9; // Negative to move up
+          const afterTranslateY = -scrollY * 0.3; // Negative to move up, but slower
+
+          beforeGrid.style.transform = `translateY(${beforeTranslateY}px)`;
+          afterLayer.style.transform = `translateY(${afterTranslateY}px)`;
+        } else {
+          // Optional: Reset or clamp transforms when scrolled past
+          // This prevents layers from moving indefinitely
+          // Example: Clamp to the maximum transform needed to move out of view
+          const finalBeforeTranslateY = -heroHeight * 0.9; // Adjust multiplier if needed
+          const finalAfterTranslateY = -heroHeight * 0.3; // Adjust multiplier if needed
+          beforeGrid.style.transform = `translateY(${finalBeforeTranslateY}px)`;
+          afterLayer.style.transform = `translateY(${finalAfterTranslateY}px)`;
+        }
+
+        ticking = false;
+      }
+
+      window.addEventListener("scroll", () => {
+        if (!ticking) {
+          window.requestAnimationFrame(handleScroll);
+          ticking = true;
+        }
+      });
+
+      // Initial call in case the page loads already scrolled (though unlikely for hero)
+      // handleScroll();
+    </script>
+  </body>
+</html>
