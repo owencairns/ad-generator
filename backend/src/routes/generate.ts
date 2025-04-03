@@ -55,18 +55,35 @@ const uploadToStorage = async (
 };
 
 const base64ToGenerativePart = (base64String: string) => {
-  // Remove data URL prefix if present
-  const base64Data = base64String.replace(
-    /^data:image\/(png|jpeg|jpg);base64,/,
-    ""
-  );
+  console.log("[Generate] Processing image for Gemini input");
+  try {
+    // Extract the mime type and base64 data from the data URL
+    const matches = base64String.match(/^data:([^;]+);base64,(.+)$/);
 
-  return {
-    inlineData: {
-      data: base64Data,
-      mimeType: "image/jpeg",
-    },
-  };
+    if (!matches) {
+      console.error("[Generate] Invalid data URL format");
+      throw new Error("Invalid data URL format");
+    }
+
+    const [, mimeType, base64Data] = matches;
+    console.log(`[Generate] Image mime type: ${mimeType}`);
+
+    // Verify we have a valid image mime type
+    if (!mimeType.startsWith("image/")) {
+      console.error(`[Generate] Invalid mime type: ${mimeType}`);
+      throw new Error(`Invalid mime type: ${mimeType}`);
+    }
+
+    return {
+      inlineData: {
+        data: base64Data,
+        mimeType: mimeType,
+      },
+    };
+  } catch (error) {
+    console.error("[Generate] Error processing image:", error);
+    throw error;
+  }
 };
 
 // POST /api/generate - Generate new ad images
@@ -132,22 +149,104 @@ const handleGenerateRequest: RequestHandler = async (req, res) => {
     );
 
     // Initialize Gemini model and prepare content
-    const prompt = `Generate a creative advertisement image based on these reference images. Here's what I want:
+    const systemMessage = `You are an AI specialized in generating creative and effective product advertisements. Your goal is to create visually appealing advertisements that showcase products clearly while maintaining engaging and professional design standards.`;
 
+    const productImagesPrompt = `This is what the product looks like - make sure to maintain a clear and prominent view of the product in the generated advertisement. The product should be the focal point while incorporating it into an attractive advertisement design. NEVER CHANGE WHAT THE PRODUCT LOOKS LIKE UNLESS SPECIFIED.`;
+
+    const inspirationPrompt =
+      inspirationImages.length > 0
+        ? `These additional images are for inspiration. Draw inspiration from their design style, composition, and aesthetic while creating the advertisement for our product. NEVER INCLUDE ANY TEXT FROM THESE IMAGES. GET RID OF WATERMARKS.`
+        : "";
+
+    const prompt = `${systemMessage}
+
+${productImagesPrompt}
+
+${inspirationPrompt}
+
+Advertisement Requirements:
 ${description}
 
-Please make sure to generate an image for the advertisement.`;
+Important Guidelines:
+- Ensure the product is clearly visible and recognizable
+- Create a professional and polished advertisement
+- Maintain high visual quality and appeal
+- The generated image should be a complete advertisement`;
 
-    // Convert all images to Generative Parts
-    const allImages = [...productImages, ...inspirationImages];
+    // Process product images and inspiration images separately
     console.log(
-      `[Generate] Processing ${allImages.length} total images for Gemini API`
+      `[Generate] Processing ${productImages.length} product images and ${inspirationImages.length} inspiration images`
     );
-    const imageParts = allImages.map(base64ToGenerativePart);
 
-    // Prepare content parts
-    const contents = [{ text: prompt }, ...imageParts];
-    console.log("[Generate] Sending request to Gemini API");
+    const contents = [];
+
+    // Add the initial prompt
+    contents.push({ text: prompt });
+
+    // Add product images with clear labeling
+    try {
+      for (let i = 0; i < productImages.length; i++) {
+        // Add the label first
+        contents.push({
+          text: `[Product Image ${
+            i + 1
+          }] This is the product to advertise. Maintain its exact appearance.`,
+        });
+        // Then add the image
+        contents.push(base64ToGenerativePart(productImages[i]));
+      }
+      console.log("[Generate] Successfully processed product images");
+    } catch (error) {
+      console.error("[Generate] Failed to process product images:", error);
+      res.status(400).json({
+        message: "Failed to process product images",
+        data: {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Unknown error processing product images",
+        },
+      } as GenerateResponseData);
+      return;
+    }
+
+    // Add inspiration images with clear labeling
+    if (inspirationImages.length > 0) {
+      try {
+        for (let i = 0; i < inspirationImages.length; i++) {
+          // Add the label first
+          contents.push({
+            text: `[Inspiration Image ${
+              i + 1
+            }] Use this image for style and composition inspiration only.`,
+          });
+          // Then add the image
+          contents.push(base64ToGenerativePart(inspirationImages[i]));
+        }
+        console.log("[Generate] Successfully processed inspiration images");
+      } catch (error) {
+        console.error(
+          "[Generate] Failed to process inspiration images:",
+          error
+        );
+        res.status(400).json({
+          message: "Failed to process inspiration images",
+          data: {
+            error:
+              error instanceof Error
+                ? error.message
+                : "Unknown error processing inspiration images",
+          },
+        } as GenerateResponseData);
+        return;
+      }
+    }
+
+    console.log(
+      "[Generate] Sending request to Gemini API with",
+      contents.length,
+      "content parts"
+    );
 
     // Generate content with image
     const response = await genAI.models.generateContent({
