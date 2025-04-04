@@ -11,6 +11,14 @@ export interface GenerationDocument {
   error?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  style?: string;
+  aspectRatio?: string;
+  textInfo?: {
+    mainText: string;
+    secondaryText: string;
+    position: string;
+    styleNotes: string;
+  };
 }
 
 export interface UploadedImage {
@@ -30,6 +38,14 @@ export interface GenerateApiRequest {
   inspirationImages?: string[]; // base64 encoded images
   userId: string;
   generationId: string;
+  style: string;
+  aspectRatio: string;
+  textInfo?: {
+    mainText: string;
+    secondaryText: string;
+    position: string;
+    styleNotes: string;
+  };
 }
 
 export interface GenerateApiResponse {

@@ -6,6 +6,14 @@ export interface GenerateRequestBody {
   productImages: string[];
   userId: string;
   generationId: string;
+  style: string;
+  aspectRatio: string;
+  textInfo?: {
+    mainText: string;
+    secondaryText: string;
+    position: string;
+    styleNotes: string;
+  };
 }
 
 export interface GenerateResponseData {
@@ -25,6 +33,14 @@ export interface FirestoreGenerationDocument {
   error?: string;
   createdAt: FirebaseFirestore.Timestamp;
   updatedAt: FirebaseFirestore.Timestamp;
+  style?: string;
+  aspectRatio?: string;
+  textInfo?: {
+    mainText: string;
+    secondaryText: string;
+    position: string;
+    styleNotes: string;
+  };
 }
 
 export interface ProcessedImage {

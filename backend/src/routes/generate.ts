@@ -153,6 +153,9 @@ const handleGenerateRequest: RequestHandler = async (req, res) => {
       productImages,
       userId,
       generationId,
+      style,
+      aspectRatio,
+      textInfo,
     } = req.body as GenerateRequestBody;
 
     // Validate request
@@ -217,6 +220,16 @@ const handleGenerateRequest: RequestHandler = async (req, res) => {
       productImageUrls,
       inspirationImageUrls:
         inspirationImageUrls.length > 0 ? inspirationImageUrls : undefined,
+      style,
+      aspectRatio,
+      textInfo: textInfo
+        ? {
+            mainText: textInfo.mainText,
+            secondaryText: textInfo.secondaryText,
+            position: textInfo.position,
+            styleNotes: textInfo.styleNotes,
+          }
+        : undefined,
     });
 
     // Prepare Gemini prompt and generate image
@@ -238,10 +251,46 @@ ${inspirationPrompt}
 Advertisement Requirements:
 ${description}
 
+Style Requirements:
+${style}
+
+Aspect Ratio:
+${aspectRatio}
+${
+  textInfo
+    ? `
+Text Requirements:
+${
+  textInfo.mainText
+    ? `- Heading: "${textInfo.mainText}"`
+    : "- No heading specified"
+}
+${
+  textInfo.secondaryText
+    ? `- Subheading: "${textInfo.secondaryText}"`
+    : "- No subheading specified"
+}
+${
+  textInfo.position === "auto"
+    ? "- Text Placement: Choose the best placement for the text"
+    : textInfo.styleNotes
+    ? `- Text Placement: ${textInfo.styleNotes}`
+    : "- Text Placement: Choose the best placement for the text"
+}
+`
+    : ""
+}
+
 Important Guidelines:
 - Ensure the product is clearly visible and recognizable
 - Create a professional and polished advertisement
 - Maintain high visual quality and appeal
+- Follow the specified style requirements exactly
+${
+  textInfo && (textInfo.mainText || textInfo.secondaryText)
+    ? "- Include the specified text exactly as provided"
+    : ""
+}
 - The generated image should be a complete advertisement`;
 
     const contents: GeminiContent[] = [{ text: prompt }];
