@@ -99,7 +99,7 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                     <span>{error}</span>
                 </div>
                 <div className="mt-4">
-                    <Link href="/dashboard" className="btn btn-primary">Back to Dashboard</Link>
+                    <Link href="/gallery" className="btn btn-primary">Back to Galleryå</Link>
                 </div>
             </div>
         );
@@ -111,38 +111,41 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-8 max-w-7xl mx-auto">
                 {/* Page Header */}
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
                         <h1 className="text-3xl font-bold text-base-content">Generation Details</h1>
-                        <p className="text-base-content/70 mt-1">View the details of your generated ad</p>
+                        <p className="text-base-content/70 mt-1">View and manage your generated advertisement</p>
                     </div>
                     <div className="flex gap-2">
-                        <Link href="/generate" className="btn btn-outline">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-1">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                        <Link href="/gallery" className="btn btn-outline btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                             </svg>
-                            Back to Generate
+                            Gallery
                         </Link>
-                        <Link href="/dashboard" className="btn btn-ghost">
-                            Dashboard
+                        <Link href="/generate" className="btn btn-primary btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            New Ad
                         </Link>
                     </div>
                 </div>
 
                 {/* Generation Result */}
-                <div className="bg-base-100 rounded-box shadow">
-                    <div className="grid grid-cols-1 lg:grid-cols-2">
+                <div className="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-base-200">
                         {/* Left Column - Generated Image */}
-                        <div className="p-6 flex flex-col items-center justify-start border-b lg:border-b-0 lg:border-r border-base-300">
-                            <div className="relative bg-base-200 rounded-lg shadow-md w-full max-w-xl aspect-square">
+                        <div className="p-6 flex flex-col items-center justify-start">
+                            <div className="relative bg-base-200 rounded-xl w-full max-w-xl aspect-square">
                                 {generationDetail.generatedImage ? (
                                     <Image
                                         src={generationDetail.generatedImage}
                                         alt="Generated Ad"
                                         fill
-                                        className="object-contain rounded-lg"
+                                        className="object-contain rounded-xl"
                                         sizes="(max-width: 1024px) 100vw, 50vw"
                                         priority
                                     />
@@ -151,51 +154,47 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                                         {generationDetail.status === 'processing' ? (
                                             <div className="flex flex-col items-center gap-3">
                                                 <span className="loading loading-spinner loading-lg text-primary"></span>
-                                                <p className="text-base-content/70 text-center">Your ad is being generated...</p>
+                                                <p className="text-base-content/70 text-center">Creating your perfect ad...</p>
                                             </div>
                                         ) : generationDetail.status === 'error' ? (
                                             <div className="flex flex-col items-center gap-3 p-4">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                                </svg>
+                                                <div className="text-error">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                    </svg>
+                                                </div>
                                                 <p className="text-error text-center font-medium">Generation failed</p>
                                                 <p className="text-base-content/70 text-center text-sm">{generationDetail.error || "An unknown error occurred"}</p>
                                             </div>
                                         ) : (
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
+                                            <div className="text-base-content/30">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
                                         )}
-                                    </div>
-                                )}
-                                {generationDetail.generatedImage && (
-                                    <div className="absolute top-4 right-4 flex gap-2">
-                                        <button className="btn btn-circle btn-sm btn-primary">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                            </svg>
-                                        </button>
-                                        <button className="btn btn-circle btn-sm btn-primary">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                            </svg>
-                                        </button>
                                     </div>
                                 )}
                             </div>
                             {generationDetail.generatedImage && (
-                                <div className="flex gap-4 mt-6">
-                                    <button className="btn btn-primary">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <div className="flex gap-3 mt-6">
+                                    <button className="btn btn-primary btn-sm gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                         </svg>
-                                        Download Ad
+                                        Download
                                     </button>
-                                    <button className="btn btn-outline">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <button className="btn btn-outline btn-sm gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
-                                        Edit Ad
+                                        Edit
+                                    </button>
+                                    <button className="btn btn-outline btn-sm gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                                        </svg>
+                                        Share
                                     </button>
                                 </div>
                             )}
@@ -203,33 +202,35 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
 
                         {/* Right Column - Generation Details */}
                         <div className="p-6">
-                            <h2 className="text-xl font-bold mb-4">Ad Details</h2>
-
                             <div className="space-y-6">
-                                {/* Description */}
-                                <div>
-                                    <h3 className="font-semibold text-base-content/80 mb-2">Description</h3>
-                                    <p className="text-base-content bg-base-200 p-4 rounded-lg">{generationDetail.description}</p>
+                                {/* Status and Date */}
+                                <div className="flex flex-wrap gap-4 items-center">
+                                    <span className={`badge ${
+                                        generationDetail.status === 'completed' 
+                                            ? 'badge-success' 
+                                            : generationDetail.status === 'processing' 
+                                                ? 'badge-warning' 
+                                                : 'badge-error'
+                                    } badge-lg`}>
+                                        {generationDetail.status.charAt(0).toUpperCase() + generationDetail.status.slice(1)}
+                                    </span>
+                                    <span className="text-base-content/70">
+                                        Generated on {new Date(generationDetail.createdAt).toLocaleDateString()}
+                                    </span>
                                 </div>
 
-                                {/* Generation Info */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <h3 className="font-semibold text-base-content/80 mb-2">Generated On</h3>
-                                        <p className="text-base-content/80">{new Date(generationDetail.createdAt).toLocaleDateString()}</p>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-base-content/80 mb-2">Status</h3>
-                                        <span className={`badge ${generationDetail.status === 'completed' ? 'badge-success' : generationDetail.status === 'processing' ? 'badge-warning' : 'badge-error'}`}>
-                                            {generationDetail.status.charAt(0).toUpperCase() + generationDetail.status.slice(1)}
-                                        </span>
+                                {/* Description */}
+                                <div>
+                                    <h3 className="text-sm font-medium text-base-content/70 mb-2">Description</h3>
+                                    <div className="bg-base-200 rounded-lg p-4">
+                                        <p className="text-base-content whitespace-pre-wrap">{generationDetail.description}</p>
                                     </div>
                                 </div>
 
                                 {/* Product Images */}
                                 <div>
-                                    <h3 className="font-semibold text-base-content/80 mb-2">Product Images</h3>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <h3 className="text-sm font-medium text-base-content/70 mb-2">Product Images</h3>
+                                    <div className="grid grid-cols-2 gap-3">
                                         {generationDetail.productImages.length > 0 ? (
                                             generationDetail.productImages.map((img, index) => (
                                                 <div key={`product-${index}`} className="relative bg-white rounded-lg shadow-sm aspect-square overflow-hidden">
@@ -252,8 +253,8 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                                 {/* Inspiration Images */}
                                 {generationDetail.inspirationImages && generationDetail.inspirationImages.length > 0 && (
                                     <div>
-                                        <h3 className="font-semibold text-base-content/80 mb-2">Inspiration Images</h3>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <h3 className="text-sm font-medium text-base-content/70 mb-2">Inspiration</h3>
+                                        <div className="grid grid-cols-2 gap-3">
                                             {generationDetail.inspirationImages.map((img, index) => (
                                                 <div key={`inspiration-${index}`} className="relative bg-white rounded-lg shadow-sm aspect-square overflow-hidden">
                                                     <Image
@@ -269,39 +270,6 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                                 )}
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex flex-col sm:flex-row justify-between gap-4 mt-4">
-                    <div className="flex flex-wrap gap-2">
-                        <button className="btn btn-outline btn-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                            </svg>
-                            Share
-                        </button>
-                        <button className="btn btn-outline btn-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                            </svg>
-                            Print
-                        </button>
-                        <button className="btn btn-outline btn-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                            </svg>
-                            Save
-                        </button>
-                    </div>
-
-                    <div>
-                        <Link href="/generate" className="btn btn-primary">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Create New Ad
-                        </Link>
                     </div>
                 </div>
             </div>

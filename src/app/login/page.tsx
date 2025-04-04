@@ -1,12 +1,12 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
-import { FcGoogle } from 'react-icons/fc';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import LoginButton from '@/components/LoginButton';
 
 export default function LoginPage() {
-  const { user, signInWithGoogle } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -22,14 +22,9 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
           <p className="mt-2 text-sm text-gray-600">Please sign in to continue</p>
         </div>
-
-        <button
-          onClick={signInWithGoogle}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-        >
-          <FcGoogle className="w-5 h-5" />
-          <span>Sign in with Google</span>
-        </button>
+        <div className="flex justify-center">
+          <LoginButton />
+        </div>
       </div>
     </main>
   );

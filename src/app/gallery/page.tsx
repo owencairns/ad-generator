@@ -10,8 +10,8 @@ import { db } from '../firebase';
 import { GenerationDocument, GenerationStatus } from '@/types/generation';
 import { Timestamp } from 'firebase/firestore';
 
-// Define interface for generation data in the Dashboard
-interface DashboardGeneration {
+// Define interface for generation data in the Gallery
+interface GalleryGeneration {
     id: string;
     description: string;
     imageUrl: string | null;
@@ -19,10 +19,10 @@ interface DashboardGeneration {
     createdAt: string;
 }
 
-export default function DashboardPage() {
+export default function GalleryPage() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
-    const [generations, setGenerations] = useState<DashboardGeneration[]>([]);
+    const [generations, setGenerations] = useState<GalleryGeneration[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +44,7 @@ export default function DashboardPage() {
                 const q = query(generationsRef, orderBy('createdAt', 'desc'), limit(10));
                 const querySnapshot = await getDocs(q);
 
-                const generationsData: DashboardGeneration[] = querySnapshot.docs.map(doc => {
+                const generationsData: GalleryGeneration[] = querySnapshot.docs.map(doc => {
                     const data = doc.data() as GenerationDocument;
                     return {
                         id: doc.id,
@@ -89,7 +89,7 @@ export default function DashboardPage() {
             <div className="min-h-[80vh] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <span className="loading loading-spinner loading-lg text-primary"></span>
-                    <p className="text-base-content/70">Loading your dashboard...</p>
+                    <p className="text-base-content/70">Loading your gallery...</p>
                 </div>
             </div>
         );
@@ -102,7 +102,7 @@ export default function DashboardPage() {
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="flex flex-col gap-8">
-                {/* Dashboard Header */}
+                {/* Gallery Header */}
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
                         <h1 className="text-3xl font-bold text-base-content">Your Ads</h1>
