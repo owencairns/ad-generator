@@ -36,6 +36,8 @@ export const AuthContextProvider = ({ children }: { children: React.ReactNode })
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUser(user);
+        // Set cookie for middleware
+        document.cookie = `user=${user.uid}; path=/`;
         const userDocRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(userDocRef);
 
@@ -52,6 +54,8 @@ export const AuthContextProvider = ({ children }: { children: React.ReactNode })
         }
       } else {
         setUser(null);
+        // Remove cookie when user logs out
+        document.cookie = 'user=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
       }
       setLoading(false);
     });

@@ -1,6 +1,35 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 export default function HomePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/gallery');
+    }
+  }, [user, loading, router]);
+
+  // If loading, show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+      </div>
+    );
+  }
+
+  // If user is logged in, this will be briefly shown before redirect
+  if (user) {
+    return null;
+  }
+
+  // Show landing page for non-logged in users
   return (
     <main className="min-h-screen bg-base-100 text-base-content overflow-x-hidden">
 

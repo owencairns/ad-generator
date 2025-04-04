@@ -20,8 +20,13 @@ export default function Navbar() {
         <div className="hidden md:flex items-center space-x-8">
           <nav className="flex items-center space-x-8 text-base-content/80">
             <Link href="/" className="hover:text-base-content transition-colors">Home</Link>
-            <Link href="/generate" className="hover:text-base-content transition-colors">Generate</Link>
-            <Link href="/gallery" className="hover:text-base-content transition-colors">Gallery</Link>
+            <Link href="/explore" className="hover:text-base-content transition-colors">Explore</Link>
+            {user && (
+              <>
+                <Link href="/generate" className="hover:text-base-content transition-colors">Generate</Link>
+                <Link href="/gallery" className="hover:text-base-content transition-colors">Gallery</Link>
+              </>
+            )}
           </nav>
 
           {/* User Profile or CTA */}
@@ -76,17 +81,15 @@ export default function Navbar() {
             </div>
             <ul tabIndex={0} className="dropdown-content menu shadow bg-base-100 rounded-md border border-base-300 w-52 p-2 mt-2">
               <li><Link href="/" className="py-2 hover:bg-base-200">Home</Link></li>
-              <li><Link href="/generate" className="py-2 hover:bg-base-200">Generate Ads</Link></li>
-              <li><Link href="/brainstorm" className="py-2 hover:bg-base-200">Brainstorm</Link></li>
-              <li><Link href="/about" className="py-2 hover:bg-base-200">About</Link></li>
-              {user && (
+              <li><Link href="/explore" className="py-2 hover:bg-base-200">Explore</Link></li>
+              {user ? (
                 <>
+                  <li><Link href="/generate" className="py-2 hover:bg-base-200">Generate Ads</Link></li>
                   <li><Link href="/profile" className="py-2 hover:bg-base-200">Profile</Link></li>
                   <li><Link href="/gallery" className="py-2 hover:bg-base-200">Gallery</Link></li>
                   <li><button onClick={logout} className="py-2 hover:bg-base-200 w-full text-left">Logout</button></li>
                 </>
-              )}
-              {!user && !loading && (
+              ) : (
                 <li>
                   <Link href="/login" className="py-2 hover:bg-base-200">Get Started</Link>
                 </li>

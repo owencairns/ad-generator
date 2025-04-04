@@ -224,15 +224,6 @@ export default function GeneratePage() {
         <div className="flex flex-col gap-12">
           {/* Page Header */}
           <div className="flex flex-col items-center text-center">
-            <Link 
-              href="/gallery" 
-              className="btn btn-ghost btn-sm gap-2 absolute left-4 md:left-8 top-24"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-              </svg>
-              Gallery
-            </Link>
             <div className="max-w-3xl mx-auto">
               <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-4">Create Your Ad</h1>
               <p className="text-lg text-neutral-600">Transform your product into a stunning advertisement using our AI-powered generator</p>
