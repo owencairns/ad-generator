@@ -285,8 +285,31 @@ export default function GeneratePage() {
                     <p className="text-neutral-600">Define how your ad will look</p>
                   </div>
                   <div className="p-6 md:p-8 space-y-8">
+                    <StyleSection
+                      selectedStyle={selectedStyle}
+                      setSelectedStyle={setSelectedStyle}
+                      customStyle={customStyle}
+                      setCustomStyle={setCustomStyle}
+                    />
 
-                  <TextSection
+                    {/* Ad Description */}
+                    <div className="form-control">
+                      <label className="label px-1">
+                        <span className="text-lg font-semibold text-neutral-900">Ad Description</span>
+                      </label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="textarea w-full min-h-[160px] text-base bg-neutral-50 rounded-2xl border-neutral-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200 placeholder:text-neutral-400 resize-none p-6"
+                        placeholder="Describe how you want your ad to look. What should be the focus? How should the product be presented? What mood or atmosphere do you want to create? E.g., 'Show the product in an outdoor setting with natural lighting, positioned at an angle to highlight its design. Create a bright, energetic mood with emphasis on the product&apos;s premium features.'"
+                      />
+                      <label className="label px-1 mt-2">
+                        <span className="text-sm text-neutral-500">Be specific about the composition, lighting, mood, and what elements should be emphasized</span>
+                        <span className="text-sm text-neutral-500">{description.length} characters</span>
+                      </label>
+                    </div>
+
+                    <TextSection
                       mainText={mainText}
                       setMainText={setMainText}
                       secondaryText={secondaryText}
@@ -295,13 +318,6 @@ export default function GeneratePage() {
                       setTextPosition={setTextPosition}
                       textStyleNotes={textStyleNotes}
                       setTextStyleNotes={setTextStyleNotes}
-                    />
-
-                    <StyleSection
-                      selectedStyle={selectedStyle}
-                      setSelectedStyle={setSelectedStyle}
-                      customStyle={customStyle}
-                      setCustomStyle={setCustomStyle}
                     />
 
                     <AspectRatioSection
