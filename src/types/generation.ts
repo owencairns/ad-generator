@@ -4,6 +4,7 @@ export type GenerationStatus = "processing" | "completed" | "error";
 
 export interface GenerationDocument {
   description: string;
+  productDescription: string;
   productImageUrls: string[];
   inspirationImageUrls?: string[];
   status: GenerationStatus;
@@ -34,6 +35,7 @@ export interface GenerationUIStatus {
 
 export interface GenerateApiRequest {
   description: string;
+  productDescription: string;
   productImages: string[]; // base64 encoded images
   inspirationImages?: string[]; // base64 encoded images
   userId: string;

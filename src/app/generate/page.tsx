@@ -12,6 +12,7 @@ import {
   GenerateApiResponse,
   GenerationDocument
 } from '@/types/generation';
+import { STYLE_PRESETS } from './constants/styles';
 
 import ProductSection from './components/ProductSection';
 import StyleSection from './components/StyleSection';
@@ -26,6 +27,7 @@ export default function GeneratePage() {
   const [inspirationImages, setInspirationImages] = useState<UploadedImage[]>([]);
   const [productImages, setProductImages] = useState<UploadedImage[]>([]);
   const [description, setDescription] = useState('');
+  const [adDescription, setAdDescription] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<string>('photo-realistic');
   const [customStyle, setCustomStyle] = useState('');
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<string>('1:1');
@@ -133,7 +135,7 @@ export default function GeneratePage() {
       return;
     }
 
-    if (!description.trim()) {
+    if (!adDescription.trim()) {
       alert('Please provide a description for your ad');
       return;
     }
@@ -164,12 +166,13 @@ export default function GeneratePage() {
       );
 
       const requestData: GenerateApiRequest = {
-        description: description.trim(),
+        description: adDescription.trim(),
+        productDescription: description.trim(),
         productImages: productImagesBase64,
         inspirationImages: inspirationImagesBase64.length > 0 ? inspirationImagesBase64 : [],
         userId: user.uid,
         generationId: newGenerationId,
-        style: selectedStyle === 'custom' ? customStyle : selectedStyle,
+        style: selectedStyle === 'custom' ? customStyle : STYLE_PRESETS[selectedStyle]?.description || selectedStyle,
         aspectRatio: selectedAspectRatio,
         textInfo: {
           mainText: mainText.trim(),
@@ -181,6 +184,7 @@ export default function GeneratePage() {
 
       console.log('Request data:', {
         description: requestData.description.length,
+        productDescription: requestData.productDescription.length,
         productImagesCount: requestData.productImages.length,
         inspirationImagesCount: requestData.inspirationImages?.length,
         userId: requestData.userId,
@@ -298,14 +302,14 @@ export default function GeneratePage() {
                         <span className="text-lg font-semibold text-neutral-900">Ad Description</span>
                       </label>
                       <textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
+                        value={adDescription}
+                        onChange={(e) => setAdDescription(e.target.value)}
                         className="textarea w-full min-h-[160px] text-base bg-neutral-50 rounded-2xl border-neutral-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200 placeholder:text-neutral-400 resize-none p-6"
                         placeholder="Describe how you want your ad to look. What should be the focus? How should the product be presented? What mood or atmosphere do you want to create? E.g., 'Show the product in an outdoor setting with natural lighting, positioned at an angle to highlight its design. Create a bright, energetic mood with emphasis on the product&apos;s premium features.'"
                       />
                       <label className="label px-1 mt-2">
                         <span className="text-sm text-neutral-500">Be specific about the composition, lighting, mood, and what elements should be emphasized</span>
-                        <span className="text-sm text-neutral-500">{description.length} characters</span>
+                        <span className="text-sm text-neutral-500">{adDescription.length} characters</span>
                       </label>
                     </div>
 
@@ -340,11 +344,11 @@ export default function GeneratePage() {
               <button
                 type="submit"
                 className={`btn btn-lg gap-2 px-8 min-w-[200px] hover:shadow-lg transition-all duration-200 ${
-                  productImages.length === 0 || !description.trim() || isGenerating
+                  productImages.length === 0 || !adDescription.trim() || isGenerating
                     ? 'btn-disabled bg-neutral-200'
                     : 'btn-primary'
                 }`}
-                disabled={productImages.length === 0 || !description.trim() || isGenerating}
+                disabled={productImages.length === 0 || !adDescription.trim() || isGenerating}
               >
                 {isGenerating ? (
                   <>

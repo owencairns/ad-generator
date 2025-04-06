@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import { STYLE_PRESETS } from '../constants/styles';
 
 interface StyleSectionProps {
   selectedStyle: string;
@@ -44,165 +45,41 @@ export default function StyleSection({
 
       <div className="p-6 md:p-8">
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          {/* Photo-Realistic Style */}
-          <label className="relative cursor-pointer">
-            <input
-              type="radio"
-              name="style"
-              value="photo-realistic"
-              checked={selectedStyle === 'photo-realistic'}
-              onChange={(e) => setSelectedStyle(e.target.value)}
-              className="peer sr-only"
-            />
-            <div className="p-3 rounded-xl border-2 border-neutral-200 bg-neutral-50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all duration-200 h-full flex flex-col">
-              <div className="rounded-lg bg-white shadow-sm mb-2.5 overflow-hidden">
-                <Image
-                  src="/images/style-examples/example-fr.png"
-                  alt="Photo-Realistic style example"
-                  width={300}
-                  height={300}
-                  className="w-full h-auto"
-                />
+          {Object.entries(STYLE_PRESETS).map(([key, preset]) => (
+            <label key={key} className="relative cursor-pointer">
+              <input
+                type="radio"
+                name="style"
+                value={key}
+                checked={selectedStyle === key}
+                onChange={(e) => setSelectedStyle(e.target.value)}
+                className="peer sr-only"
+              />
+              <div className="p-3 rounded-xl border-2 border-neutral-200 bg-neutral-50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all duration-200 h-full flex flex-col">
+                <div className="rounded-lg bg-white shadow-sm mb-2.5 overflow-hidden">
+                  <Image
+                    src={`/images/style-examples/${key === 'photo-realistic' ? 'example-fr' : 
+                         key === '3d-rendered' ? 'example-3d' :
+                         key === 'vintage' ? 'example-retro' :
+                         `example-${key}`}.png`}
+                    alt={`${preset.name} style example`}
+                    width={300}
+                    height={300}
+                    className="w-full h-auto"
+                  />
+                </div>
+                <h3 className="font-semibold text-neutral-900 text-sm">{preset.name}</h3>
+                <div className="mt-1.5 space-y-1 text-xs">
+                  <p className="text-neutral-600">
+                    <span className="font-medium text-neutral-700">Used for:</span> {preset.usedFor.join(', ')}
+                  </p>
+                  <p className="text-neutral-600">
+                    <span className="font-medium text-neutral-700">Think:</span> {preset.thinkOf}
+                  </p>
+                </div>
               </div>
-              <h3 className="font-semibold text-neutral-900 text-sm">Photo-Realistic</h3>
-              <div className="mt-1.5 space-y-1 text-xs">
-                <p className="text-neutral-600">
-                  <span className="font-medium text-neutral-700">Used for:</span> Food, fashion, travel, lifestyle
-                </p>
-                <p className="text-neutral-600">
-                  <span className="font-medium text-neutral-700">Think:</span> High-quality, authentic photography
-                </p>
-              </div>
-            </div>
-          </label>
-
-          {/* Cartoon/Illustrated Style */}
-          <label className="relative cursor-pointer">
-            <input
-              type="radio"
-              name="style"
-              value="cartoon"
-              checked={selectedStyle === 'cartoon'}
-              onChange={(e) => setSelectedStyle(e.target.value)}
-              className="peer sr-only"
-            />
-            <div className="p-3 rounded-xl border-2 border-neutral-200 bg-neutral-50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all duration-200 h-full flex flex-col">
-              <div className="rounded-lg bg-white shadow-sm mb-2.5 overflow-hidden">
-                <Image
-                  src="/images/style-examples/example-cartoon.png"
-                  alt="Cartoon style example"
-                  width={300}
-                  height={300}
-                  className="w-full h-auto"
-                />
-              </div>
-              <h3 className="font-semibold text-neutral-900 text-sm">Cartoon / Illustrated</h3>
-              <div className="mt-1.5 space-y-1 text-xs">
-                <p className="text-neutral-600">
-                  <span className="font-medium text-neutral-700">Used for:</span> Apps, kid-friendly brands
-                </p>
-                <p className="text-neutral-600">
-                  <span className="font-medium text-neutral-700">Think:</span> Playful, hand-drawn style
-                </p>
-              </div>
-            </div>
-          </label>
-
-          {/* Minimalist Style */}
-          <label className="relative cursor-pointer">
-            <input
-              type="radio"
-              name="style"
-              value="minimalist"
-              checked={selectedStyle === 'minimalist'}
-              onChange={(e) => setSelectedStyle(e.target.value)}
-              className="peer sr-only"
-            />
-            <div className="p-3 rounded-xl border-2 border-neutral-200 bg-neutral-50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all duration-200 h-full flex flex-col">
-              <div className="rounded-lg bg-white shadow-sm mb-2.5 overflow-hidden">
-                <Image
-                  src="/images/style-examples/example-minimalist.png"
-                  alt="Minimalist style example"
-                  width={300}
-                  height={300}
-                  className="w-full h-auto"
-                />
-              </div>
-              <h3 className="font-semibold text-neutral-900 text-sm">Minimalist</h3>
-              <div className="mt-1.5 space-y-1 text-xs">
-                <p className="text-neutral-600">
-                  <span className="font-medium text-neutral-700">Used for:</span> Tech, luxury brands
-                </p>
-                <p className="text-neutral-600">
-                  <span className="font-medium text-neutral-700">Think:</span> Clean, sleek design
-                </p>
-              </div>
-            </div>
-          </label>
-
-          {/* Retro/Vintage Style */}
-          <label className="relative cursor-pointer">
-            <input
-              type="radio"
-              name="style"
-              value="vintage"
-              checked={selectedStyle === 'vintage'}
-              onChange={(e) => setSelectedStyle(e.target.value)}
-              className="peer sr-only"
-            />
-            <div className="p-3 rounded-xl border-2 border-neutral-200 bg-neutral-50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all duration-200 h-full flex flex-col">
-              <div className="rounded-lg bg-white shadow-sm mb-2.5 overflow-hidden">
-                <Image
-                  src="/images/style-examples/example-retro.png"
-                  alt="Retro/Vintage style example"
-                  width={300}
-                  height={300}
-                  className="w-full h-auto"
-                />
-              </div>
-              <h3 className="font-semibold text-neutral-900 text-sm">Retro / Vintage</h3>
-              <div className="mt-1.5 space-y-1 text-xs">
-                <p className="text-neutral-600">
-                  <span className="font-medium text-neutral-700">Used for:</span> Nostalgic, boutique
-                </p>
-                <p className="text-neutral-600">
-                  <span className="font-medium text-neutral-700">Think:</span> Classic, aged textures
-                </p>
-              </div>
-            </div>
-          </label>
-
-          {/* 3D Rendered Style */}
-          <label className="relative cursor-pointer">
-            <input
-              type="radio"
-              name="style"
-              value="3d-rendered"
-              checked={selectedStyle === '3d-rendered'}
-              onChange={(e) => setSelectedStyle(e.target.value)}
-              className="peer sr-only"
-            />
-            <div className="p-3 rounded-xl border-2 border-neutral-200 bg-neutral-50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all duration-200 h-full flex flex-col">
-              <div className="rounded-lg bg-white shadow-sm mb-2.5 overflow-hidden">
-                <Image
-                  src="/images/style-examples/example-3d.png"
-                  alt="3D Rendered style example"
-                  width={300}
-                  height={300}
-                  className="w-full h-auto"
-                />
-              </div>
-              <h3 className="font-semibold text-neutral-900 text-sm">3D Rendered</h3>
-              <div className="mt-1.5 space-y-1 text-xs">
-                <p className="text-neutral-600">
-                  <span className="font-medium text-neutral-700">Used for:</span> Tech, beauty
-                </p>
-                <p className="text-neutral-600">
-                  <span className="font-medium text-neutral-700">Think:</span> Glossy, stylized
-                </p>
-              </div>
-            </div>
-          </label>
+            </label>
+          ))}
 
           {/* Divider with "or" */}
           <div className="col-span-2 lg:col-span-5 flex items-center gap-4 my-4">

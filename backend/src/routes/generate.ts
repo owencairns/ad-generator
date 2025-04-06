@@ -149,6 +149,7 @@ const handleGenerateRequest: RequestHandler = async (req, res) => {
   try {
     const {
       description,
+      productDescription,
       inspirationImages = [],
       productImages,
       userId,
@@ -191,10 +192,12 @@ const handleGenerateRequest: RequestHandler = async (req, res) => {
       return;
     }
 
-    if (!description) {
-      console.warn("[Generate] Missing description in request");
+    if (!description || !productDescription) {
+      console.warn(
+        "[Generate] Missing description or product description in request"
+      );
       res.status(400).json({
-        message: "Description is required",
+        message: "Both ad description and product description are required",
       } as GenerateResponseData);
       return;
     }
@@ -217,9 +220,10 @@ const handleGenerateRequest: RequestHandler = async (req, res) => {
     // Create Firestore document
     const docRef = await createFirestoreDocument(userId, generationId, {
       description,
+      productDescription,
       productImageUrls,
-      inspirationImageUrls:
-        inspirationImageUrls.length > 0 ? inspirationImageUrls : undefined,
+      // Only include inspirationImageUrls if there are actually images
+      ...(inspirationImageUrls.length > 0 ? { inspirationImageUrls } : {}),
       style,
       aspectRatio,
       textInfo: textInfo
@@ -235,7 +239,10 @@ const handleGenerateRequest: RequestHandler = async (req, res) => {
     // Prepare Gemini prompt and generate image
     const systemMessage = `You are an AI specialized in generating creative and effective product advertisements. Your goal is to create visually appealing advertisements that showcase products clearly while maintaining engaging and professional design standards.`;
 
-    const productImagesPrompt = `This is what the product looks like - make sure to maintain a clear and prominent view of the product in the generated advertisement. The product should be the focal point while incorporating it into an attractive advertisement design. NEVER CHANGE WHAT THE PRODUCT LOOKS LIKE UNLESS SPECIFIED.`;
+    const productImagesPrompt = `This is what the product looks like - make sure to maintain a clear and prominent view of the product in the generated advertisement. The product should be the focal point while incorporating it into an attractive advertisement design. NEVER CHANGE WHAT THE PRODUCT LOOKS LIKE UNLESS SPECIFIED.
+
+Product Description:
+${productDescription}`;
 
     const inspirationPrompt =
       inspirationImages.length > 0

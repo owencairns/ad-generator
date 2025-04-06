@@ -63,55 +63,96 @@ export default function ProductSection({
         <div className="space-y-8">
           {/* Image Upload Section */}
           <div>
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Product Images</h3>
-            {productImages.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                {productImages.map((img, index) => (
-                  <div key={index} className="relative group">
-                    <div className="overflow-hidden rounded-xl bg-white shadow-sm aspect-square group-hover:shadow-md transition-all duration-300">
+            <h3 className="text-lg font-semibold text-neutral-900 mb-4">Product Images</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Existing Images */}
+              {productImages.map((img, index) => (
+                <div 
+                  key={index} 
+                  className="group relative bg-neutral-50 rounded-2xl overflow-hidden"
+                >
+                  {/* Background blur effect */}
+                  <div 
+                    className="absolute inset-0 bg-cover bg-center blur-2xl opacity-30 scale-110"
+                    style={{ backgroundImage: `url(${img.url})` }}
+                  />
+                  
+                  {/* Main image container */}
+                  <div className="relative p-4">
+                    <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-white shadow-sm">
                       <Image
                         src={img.url}
                         alt={`Product ${index + 1}`}
                         fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="object-contain p-2"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeProductImage(index)}
-                      className="btn btn-circle btn-sm absolute -top-2 -right-2 bg-white border-neutral-200 shadow-sm opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 hover:border-red-200"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
                   </div>
-                ))}
-              </div>
-            ) : null}
 
-            {productImages.length < 2 && (
-              <div
-                onClick={() => productInputRef?.current?.click()}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                className="bg-neutral-50 rounded-2xl p-8 border-2 border-neutral-200 border-dashed cursor-pointer hover:bg-neutral-100/50 transition-colors duration-200 text-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-neutral-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p className="text-neutral-600 font-medium">Drop your product image here</p>
-                <p className="text-neutral-500 text-sm mt-1">or click to browse</p>
-              </div>
-            )}
+                  {/* Overlay with actions */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+                    <div className="relative flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => window.open(img.url, '_blank')}
+                        className="btn btn-circle btn-sm bg-white/90 hover:bg-white border-0 text-neutral-700"
+                        title="View full size"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeProductImage(index)}
+                        className="btn btn-circle btn-sm bg-white/90 hover:bg-red-50 border-0 text-red-500"
+                        title="Remove image"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
 
-            <input
-              ref={productInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleProductUpload}
-              className="hidden"
-            />
+                  {/* Image number badge */}
+                  <div className="absolute top-3 left-3 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium text-neutral-600">
+                    Product Image {index + 1}
+                  </div>
+                </div>
+              ))}
+
+              {/* Upload Area */}
+              {productImages.length < 2 && (
+                <div
+                  onClick={() => productInputRef?.current?.click()}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  className="relative group bg-neutral-50 rounded-2xl border-2 border-neutral-200 border-dashed overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors duration-200"></div>
+                  <div className="relative p-8 flex flex-col items-center justify-center min-h-[240px]">
+                    <div className="bg-white rounded-full p-4 shadow-sm mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <h4 className="text-lg font-medium text-neutral-900 mb-1">Upload Product Image</h4>
+                    <p className="text-neutral-500 text-sm text-center max-w-xs">
+                      Drop your image here or click to browse. We recommend high-quality product photos on a clean background.
+                    </p>
+                    <div className="mt-4 flex items-center gap-2 text-xs text-neutral-400">
+                      <span>Supports:</span>
+                      <span className="px-2 py-1 bg-neutral-100 rounded">PNG</span>
+                      <span className="px-2 py-1 bg-neutral-100 rounded">JPG</span>
+                      <span className="px-2 py-1 bg-neutral-100 rounded">WEBP</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Description Section */}
@@ -130,6 +171,14 @@ export default function ProductSection({
           </div>
         </div>
       </div>
+
+      <input
+        ref={productInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleProductUpload}
+        className="hidden"
+      />
     </div>
   );
 } 
