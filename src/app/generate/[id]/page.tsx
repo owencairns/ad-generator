@@ -19,6 +19,7 @@ interface GenerationDetail {
     id: string;
     description: string;
     productDescription: string;
+    productName?: string;
     productImages: string[];
     inspirationImages: string[];
     generatedImage: string | null;
@@ -91,6 +92,7 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                         id: docSnap.id,
                         description: data.description,
                         productDescription: data.productDescription,
+                        productName: data.productName || `Ad ${docSnap.id.substring(0, 6)}`,
                         productImages: data.productImageUrls || [],
                         inspirationImages: data.inspirationImageUrls || [],
                         generatedImage: data.generatedImageUrl || null,
@@ -205,7 +207,7 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
             {/* Title and Metadata */}
             <div className="container mx-auto px-6 mb-8 opacity-0 animate-fade-in [animation-delay:150ms]">
                 <div className="max-w-[1600px] mx-auto">
-                    <h1 className="text-3xl font-bold text-base-content mb-4">{generationDetail.description}</h1>
+                    <h1 className="text-3xl font-bold text-base-content mb-4">{generationDetail.productName}</h1>
                     <div className="flex items-center gap-6 text-base-content/70">
                         <div className="flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

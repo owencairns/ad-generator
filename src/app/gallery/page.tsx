@@ -20,6 +20,7 @@ interface GalleryGeneration {
     imageUrl: string | null;
     status: GenerationStatus;
     createdAt: string;
+    productName?: string;
 }
 
 export default function GalleryPage() {
@@ -56,7 +57,8 @@ export default function GalleryPage() {
                         status: data.status,
                         createdAt: data.createdAt instanceof Timestamp
                             ? data.createdAt.toDate().toISOString()
-                            : new Date().toISOString()
+                            : new Date().toISOString(),
+                        productName: data.productName || `Ad ${doc.id.substring(0, 6)}`
                     };
                 });
 
@@ -178,7 +180,7 @@ export default function GalleryPage() {
                                 </figure>
                                 <div className="p-6">
                                     <div className="flex justify-between items-start gap-4 mb-3">
-                                        <h2 className="text-base font-semibold text-base-content">Ad {generation.id.substring(0, 6)}</h2>
+                                        <h2 className="text-base font-semibold text-base-content line-clamp-1">{generation.productName}</h2>
                                         <div className="flex items-center gap-2 text-sm">
                                             <span className={`w-2 h-2 rounded-full ${
                                                 generation.status === 'completed' ? 'bg-success/70' :

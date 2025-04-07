@@ -221,6 +221,7 @@ const handleGenerateRequest: RequestHandler = async (req, res) => {
     const docRef = await createFirestoreDocument(userId, generationId, {
       description,
       productDescription,
+      productName: req.body.productName,
       productImageUrls,
       // Only include inspirationImageUrls if there are actually images
       ...(inspirationImageUrls.length > 0 ? { inspirationImageUrls } : {}),

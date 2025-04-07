@@ -3,6 +3,7 @@ export type GenerationStatus = "processing" | "completed" | "error";
 export interface GenerateRequestBody {
   description: string;
   productDescription: string;
+  productName?: string;
   inspirationImages?: string[];
   productImages: string[];
   userId: string;
@@ -28,6 +29,7 @@ export interface GenerateResponseData {
 export interface FirestoreGenerationDocument {
   description: string;
   productDescription: string;
+  productName?: string;
   productImageUrls: string[];
   inspirationImageUrls?: string[];
   status: GenerationStatus;

@@ -11,6 +11,8 @@ interface ProductSectionProps {
   handleProductUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   removeProductImage: (index: number) => void;
   productInputRef: React.RefObject<HTMLInputElement>;
+  productName: string;
+  setProductName: (name: string) => void;
 }
 
 export default function ProductSection({
@@ -19,7 +21,9 @@ export default function ProductSection({
   setDescription,
   handleProductUpload,
   removeProductImage,
-  productInputRef
+  productInputRef,
+  productName,
+  setProductName
 }: ProductSectionProps) {
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -118,7 +122,7 @@ export default function ProductSection({
                   </div>
 
                   {/* Image number badge */}
-                  <div className="absolute top-3 left-3 px-2 py-1 bg-base-100/90 backdrop-blur-sm rounded-full text-xs font-medium text-base-content/70">
+                  <div className="absolute top-2 left-2 px-2 py-1 bg-base-100/90 backdrop-blur-sm rounded-full text-xs font-medium text-base-content/70">
                     Product Image {index + 1}
                   </div>
                 </div>
@@ -155,17 +159,33 @@ export default function ProductSection({
             </div>
           </div>
 
-          {/* Description Section */}
+          {/* Product Name Field */}
+          <div>
+            <h3 className="text-lg font-semibold text-base-content mb-2">Product Name</h3>
+            <input
+              type="text"
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              className="input w-full bg-base-200 rounded-2xl border-base-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200 placeholder:text-base-content/40"
+              placeholder="Enter your product name (e.g., 'Premium Whey Protein Powder')"
+            />
+            <label className="label px-1 mt-2">
+              <span className="text-sm text-base-content/60">A clear, concise name for your product</span>
+              <span className="text-sm text-base-content/60">{productName.length} characters</span>
+            </label>
+          </div>
+
+          {/* Product Description */}
           <div>
             <h3 className="text-lg font-semibold text-base-content mb-2">Product Description</h3>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="textarea w-full min-h-[160px] text-base bg-base-200 rounded-2xl border-base-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200 placeholder:text-base-content/40 resize-none p-6"
-              placeholder="Describe your product in detail. Include key features, benefits, materials, dimensions, or any other relevant information that helps understand what the product is. E.g., &apos;Premium whey protein powder with 25g protein per serving, made from grass-fed cows. Available in chocolate and vanilla flavors.&apos;"
+              placeholder="Describe your product's key features, benefits, and unique selling points. What makes it special? What problems does it solve? E.g., 'Our premium whey protein powder is sourced from grass-fed cows and contains 25g of protein per serving. It's sugar-free, easy to mix, and comes in three delicious flavors.'"
             />
             <label className="label px-1 mt-2">
-              <span className="text-sm text-base-content/60">Be specific about the product&apos;s features, specifications, and unique selling points</span>
+              <span className="text-sm text-base-content/60">Be specific about what makes your product unique</span>
               <span className="text-sm text-base-content/60">{description.length} characters</span>
             </label>
           </div>

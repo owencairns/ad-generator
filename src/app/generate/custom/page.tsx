@@ -27,6 +27,7 @@ export default function GeneratePage() {
   const [inspirationImages, setInspirationImages] = useState<UploadedImage[]>([]);
   const [productImages, setProductImages] = useState<UploadedImage[]>([]);
   const [description, setDescription] = useState('');
+  const [productName, setProductName] = useState('');
   const [adDescription, setAdDescription] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<string>('photo-realistic');
   const [customStyle, setCustomStyle] = useState('');
@@ -165,6 +166,7 @@ export default function GeneratePage() {
       const requestData: GenerateApiRequest = {
         description: adDescription.trim(),
         productDescription: description.trim(),
+        productName: productName.trim(),
         productImages: productImagesBase64,
         inspirationImages: inspirationImagesBase64.length > 0 ? inspirationImagesBase64 : [],
         userId: user.uid,
@@ -280,6 +282,8 @@ export default function GeneratePage() {
                     handleProductUpload={handleProductUpload}
                     removeProductImage={removeProductImage}
                     productInputRef={productInputRef as React.RefObject<HTMLInputElement>}
+                    productName={productName}
+                    setProductName={setProductName}
                   />
                 </div>
 
