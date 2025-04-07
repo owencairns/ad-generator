@@ -84,7 +84,7 @@ export default function SelectGenerationTypePage() {
             {/* Custom Option */}
             <button
               onClick={() => router.push('/generate/custom')}
-              className="group relative bg-base-100 rounded-3xl p-8 border-2 border-base-300 hover:border-primary transition-all duration-300 text-left"
+              className="group relative bg-base-100 rounded-3xl p-8 border-2 border-base-300 hover:cursor-pointer hover:border-primary transition-all duration-300 text-left"
             >
               <div className="flex items-start gap-6">
                 <div className="bg-primary/10 p-4 rounded-2xl">
@@ -110,7 +110,7 @@ export default function SelectGenerationTypePage() {
             {/* Template Option */}
             <button
               onClick={() => router.push('/generate/templates')}
-              className="group relative bg-base-100 rounded-3xl p-8 border-2 border-base-300 hover:border-primary transition-all duration-300 text-left"
+              className="group relative bg-base-100 rounded-3xl p-8 border-2 border-base-300 hover:cursor-pointer hover:border-primary transition-all duration-300 text-left"
             >
               <div className="flex items-start gap-6">
                 <div className="bg-primary/10 p-4 rounded-2xl">

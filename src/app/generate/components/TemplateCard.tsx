@@ -24,7 +24,7 @@ export default function TemplateCard({ template, variant = 'full', className = '
     return (
       <button
         onClick={() => router.push(`/generate/templates/${template.id}`)}
-        className={`group bg-base-100 rounded-2xl overflow-hidden border border-base-300 hover:border-primary transition-all duration-300 ${className}`}
+        className={`group bg-base-100 rounded-2xl overflow-hidden border border-base-300 hover:cursor-pointer hover:border-primary transition-all duration-300 ${className}`}
       >
         <div className="relative aspect-square bg-base-200">
           <Image
@@ -52,7 +52,7 @@ export default function TemplateCard({ template, variant = 'full', className = '
   return (
     <button
       onClick={() => router.push(`/generate/templates/${template.id}`)}
-      className={`group relative bg-base-100 rounded-3xl overflow-hidden border border-base-300 hover:border-primary hover:shadow-lg transition-all duration-300 h-[800px] flex flex-col ${className}`}
+      className={`group relative bg-base-100 rounded-3xl overflow-hidden border border-base-300 hover:cursor-pointer hover:border-primary hover:shadow-lg transition-all duration-300 h-[800px] flex flex-col ${className}`}
     >
       {/* Template Preview */}
       <div className="w-full h-auto">
