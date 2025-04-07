@@ -24,8 +24,8 @@ export default function TextSection({
   setTextStyleNotes
 }: TextSectionProps) {
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-neutral-200 overflow-hidden">
-      <div className="bg-neutral-50 border-b border-neutral-200 p-6 md:p-8">
+    <div className="bg-base-100 rounded-3xl shadow-sm border border-base-300 overflow-hidden">
+      <div className="bg-base-200 border-b border-base-300 p-6 md:p-8">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="bg-primary/10 p-3 rounded-xl">
@@ -34,11 +34,11 @@ export default function TextSection({
               </svg>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-neutral-900">Add Text</h2>
-              <p className="text-neutral-600 mt-1">Add optional text to your ad</p>
+              <h2 className="text-2xl font-bold text-base-content">Add Text</h2>
+              <p className="text-base-content/70 mt-1">Add optional text to your ad</p>
             </div>
           </div>
-          <div className="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-sm">5</div>
+          <div className="bg-primary text-base-100 w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-sm">5</div>
         </div>
       </div>
       
@@ -47,12 +47,12 @@ export default function TextSection({
           {/* Heading Input */}
           <div className="form-control">
             <label className="label px-1">
-              <span className="text-sm font-medium text-neutral-900">Heading</span>
+              <span className="text-sm font-medium text-base-content">Heading</span>
             </label>
             <input
               type="text"
               placeholder="Short, bold hook – max 6 words"
-              className="input input-bordered w-full bg-neutral-50 rounded-xl border-neutral-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200"
+              className="input input-bordered w-full bg-base-200 rounded-xl border-base-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200"
               value={mainText}
               onChange={(e) => setMainText(e.target.value)}
               maxLength={50}
@@ -62,12 +62,12 @@ export default function TextSection({
           {/* Subheading Input */}
           <div className="form-control">
             <label className="label px-1">
-              <span className="text-sm font-medium text-neutral-900">Subheading</span>
+              <span className="text-sm font-medium text-base-content">Subheading</span>
             </label>
             <input
               type="text"
               placeholder="Optional support line under the main headline"
-              className="input input-bordered w-full bg-neutral-50 rounded-xl border-neutral-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200"
+              className="input input-bordered w-full bg-base-200 rounded-xl border-base-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200"
               value={secondaryText}
               onChange={(e) => setSecondaryText(e.target.value)}
               maxLength={100}
@@ -78,7 +78,7 @@ export default function TextSection({
           {(mainText || secondaryText) && (
             <div className="form-control">
               <label className="label px-1">
-                <span className="text-sm font-medium text-neutral-900">Text Placement</span>
+                <span className="text-sm font-medium text-base-content">Text Placement</span>
               </label>
               <div className="flex items-center gap-2 mb-2">
                 <input 
@@ -87,12 +87,12 @@ export default function TextSection({
                   checked={textPosition === 'auto'}
                   onChange={(e) => setTextPosition(e.target.checked ? 'auto' : '')}
                 />
-                <span className="text-sm text-neutral-700">Auto</span>
+                <span className="text-sm text-base-content/80">Auto</span>
               </div>
               {textPosition !== 'auto' && (
                 <textarea
                   placeholder="E.g., 'Place heading at the top and subheading at the bottom' or 'Text should be centered on a dark overlay'"
-                  className="textarea textarea-bordered w-full h-20 bg-neutral-50 rounded-xl border-neutral-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200"
+                  className="textarea textarea-bordered w-full h-20 bg-base-200 rounded-xl border-base-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200"
                   value={textStyleNotes}
                   onChange={(e) => setTextStyleNotes(e.target.value)}
                 />

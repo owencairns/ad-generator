@@ -208,7 +208,7 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                     {/* Left Column - Image and Actions */}
                     <div className="w-full lg:w-[60%]">
                         {/* Image Card */}
-                        <div className="bg-white rounded-3xl overflow-hidden border border-base-200/50 shadow-sm">
+                        <div className="bg-base-100 rounded-3xl overflow-hidden border border-base-300 shadow-sm">
                             {/* Generated Image */}
                             <div className="relative aspect-square">
                                 {generationDetail.generatedImage ? (
@@ -228,15 +228,15 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                             </div>
 
                             {/* Actions */}
-                            <div className="border-t border-base-200/50">
-                                <div className="flex items-center justify-center divide-x divide-base-200/50">
-                                    <button className="flex-1 text-base-content/70 hover:text-primary hover:bg-base-100 transition-all flex items-center justify-center gap-2 py-3 px-4">
+                            <div className="border-t border-base-300">
+                                <div className="flex items-center justify-center divide-x divide-base-300">
+                                    <button className="flex-1 text-base-content/70 hover:text-primary hover:bg-base-200 transition-all flex items-center justify-center gap-2 py-3 px-8 rounded-full normal-case text-base font-medium hover:scale-105">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                         </svg>
                                         <span>Download</span>
                                     </button>
-                                    <button className="flex-1 text-base-content/70 hover:text-primary hover:bg-base-100 transition-all flex items-center justify-center gap-2 py-3 px-4">
+                                    <button className="flex-1 text-base-content/70 hover:text-primary hover:bg-base-200 transition-all flex items-center justify-center gap-2 py-3 px-8 rounded-full normal-case text-base font-medium hover:scale-105">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                                         </svg>
@@ -244,7 +244,7 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                                     </button>
                                     <button 
                                         onClick={() => setIsEditModalOpen(true)}
-                                        className="flex-1 text-base-content/70 hover:text-primary hover:bg-base-100 transition-all flex items-center justify-center gap-2 py-3 px-4"
+                                        className="flex-1 text-base-content/70 hover:text-primary hover:bg-base-200 transition-all flex items-center justify-center gap-2 py-3 px-4"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -269,7 +269,7 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                             <h3 className="text-lg text-base-content/70 mb-4">Source Images</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 {generationDetail.productImages.map((img, index) => (
-                                    <div key={index} className="aspect-square relative bg-white">
+                                    <div key={index} className="aspect-square relative bg-base-100 rounded-lg border border-base-300">
                                         <Image
                                             src={img}
                                             alt={`Product ${index + 1}`}
@@ -280,7 +280,7 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
                                     </div>
                                 ))}
                                 {generationDetail.inspirationImages?.map((img, index) => (
-                                    <div key={index} className="aspect-square relative bg-white">
+                                    <div key={index} className="aspect-square relative bg-base-100 rounded-lg border border-base-300">
                                         <Image
                                             src={img}
                                             alt={`Inspiration ${index + 1}`}
@@ -357,11 +357,11 @@ export default function GenerationDetailPage({ params }: { params: Promise<{ id:
 
             {/* Edit Modal */}
             {isEditModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-base-content/50 flex items-center justify-center z-50">
                     <div className="bg-base-100 p-8 max-w-2xl w-full mx-4">
-                        <h3 className="text-2xl mb-4">Edit Advertisement</h3>
+                        <h3 className="text-2xl mb-4 text-base-content">Edit Advertisement</h3>
                         <textarea
-                            className="w-full h-32 mb-6 bg-white/50 p-4 rounded-none border-0 focus:outline-none resize-none"
+                            className="w-full h-32 mb-6 bg-base-200 p-4 rounded-lg border-base-300 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                             placeholder="Describe the changes you want..."
                             value={editDescription}
                             onChange={(e) => setEditDescription(e.target.value)}

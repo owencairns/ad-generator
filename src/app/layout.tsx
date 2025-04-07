@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { AuthContextProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
@@ -16,6 +17,7 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const isLoginPage = pathname === '/login';
+  const showNavbar = pathname !== "/login" && pathname !== "/signup";
 
   if (loading) {
     return (
@@ -27,7 +29,7 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {!isLoginPage && !user && <Navbar />}
+      {showNavbar && !isLoginPage && !user && <Navbar />}
       {!isLoginPage && user && <Sidebar />}
       <div className={`min-h-screen ${!isLoginPage && user ? 'pl-64' : ''}`}>
         {children}
@@ -46,8 +48,10 @@ export default function RootLayout({
     <html data-theme="corporate" lang="en">
       <body className={inter.className}>
         <AuthContextProvider>
-          <RootLayoutContent>{children}</RootLayoutContent>
-          <Toaster position="bottom-right" />
+          <ThemeProvider>
+            <RootLayoutContent>{children}</RootLayoutContent>
+            <Toaster position="bottom-right" />
+          </ThemeProvider>
         </AuthContextProvider>
       </body>
     </html>

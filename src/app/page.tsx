@@ -46,7 +46,7 @@ export default function HomePage() {
               ambitious, busy marketers. Feel confident, professional,
               clearer—without spending hours.
             </p>
-            <button className="btn btn-primary btn-lg shadow-md mb-4 px-8">
+            <button className="btn btn-primary rounded-full px-8 normal-case text-base font-medium hover:scale-105 transition-transform">
               Create Better Today
             </button>
             <p className="text-sm text-base-content/60">*7 Days free trial. Cancel anytime</p>

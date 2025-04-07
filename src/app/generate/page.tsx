@@ -256,8 +256,8 @@ export default function GeneratePage() {
             {/* Page Header */}
             <div className="flex flex-col items-center text-center">
               <div className="max-w-3xl mx-auto">
-                <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-4">Create Your Ad</h1>
-                <p className="text-lg text-neutral-600">Transform your product into a stunning advertisement using our AI-powered generator</p>
+                <h1 className="text-4xl md:text-5xl font-bold text-base-content mb-4">Create Your Ad</h1>
+                <p className="text-lg text-base-content/70">Transform your product into a stunning advertisement using our AI-powered generator</p>
               </div>
             </div>
 
@@ -285,10 +285,10 @@ export default function GeneratePage() {
 
                 {/* Style Area */}
                 <div className="space-y-8">
-                  <div className="bg-white rounded-3xl shadow-sm border border-neutral-200 overflow-hidden">
-                    <div className="bg-neutral-50 border-b border-neutral-200 p-6 md:p-8">
-                      <h2 className="text-2xl font-bold text-neutral-900 mb-2">Style Settings</h2>
-                      <p className="text-neutral-600">Define how your ad will look</p>
+                  <div className="bg-base-100 rounded-3xl shadow-sm border border-base-300 overflow-hidden">
+                    <div className="bg-base-200 border-b border-base-300 p-6 md:p-8">
+                      <h2 className="text-2xl font-bold text-base-content mb-2">Style Settings</h2>
+                      <p className="text-base-content/70">Define how your ad will look</p>
                     </div>
                     <div className="p-6 md:p-8 space-y-8">
                       <StyleSection
@@ -301,17 +301,17 @@ export default function GeneratePage() {
                       {/* Ad Description */}
                       <div className="form-control">
                         <label className="label px-1">
-                          <span className="text-lg font-semibold text-neutral-900">Ad Description</span>
+                          <span className="text-lg font-semibold text-base-content">Ad Description</span>
                         </label>
                         <textarea
                           value={adDescription}
                           onChange={(e) => setAdDescription(e.target.value)}
-                          className="textarea w-full min-h-[160px] text-base bg-neutral-50 rounded-2xl border-neutral-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200 placeholder:text-neutral-400 resize-none p-6"
+                          className="textarea w-full min-h-[160px] text-base bg-base-200 rounded-2xl border-base-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200 placeholder:text-base-content/40 resize-none p-6"
                           placeholder="Describe how you want your ad to look. What should be the focus? How should the product be presented? What mood or atmosphere do you want to create? E.g., 'Show the product in an outdoor setting with natural lighting, positioned at an angle to highlight its design. Create a bright, energetic mood with emphasis on the product&apos;s premium features.'"
                         />
                         <label className="label px-1 mt-2">
-                          <span className="text-sm text-neutral-500">Be specific about the composition, lighting, mood, and what elements should be emphasized</span>
-                          <span className="text-sm text-neutral-500">{adDescription.length} characters</span>
+                          <span className="text-sm text-base-content/60">Be specific about the composition, lighting, mood, and what elements should be emphasized</span>
+                          <span className="text-sm text-base-content/60">{adDescription.length} characters</span>
                         </label>
                       </div>
 
@@ -345,9 +345,9 @@ export default function GeneratePage() {
               <div className="flex items-center justify-end gap-4 pt-6">
                 <button
                   type="submit"
-                  className={`btn btn-lg gap-2 px-8 min-w-[200px] hover:shadow-lg transition-all duration-200 ${
+                  className={`btn rounded-full px-8 normal-case text-base font-medium hover:scale-105 transition-transform gap-2 min-w-[200px] ${
                     productImages.length === 0 || !adDescription.trim() || isGenerating
-                      ? 'btn-disabled bg-neutral-200'
+                      ? 'btn-disabled bg-base-300'
                       : 'btn-primary'
                   }`}
                   disabled={productImages.length === 0 || !adDescription.trim() || isGenerating}

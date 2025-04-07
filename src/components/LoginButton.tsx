@@ -9,7 +9,7 @@ export default function LoginButton() {
   return (
     <button
       onClick={signInWithGoogle}
-      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+      className="btn rounded-full px-8 normal-case text-base font-medium hover:scale-105 transition-transform bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary flex items-center gap-2"
     >
       <FcGoogle className="w-5 h-5" />
       Sign in with Google

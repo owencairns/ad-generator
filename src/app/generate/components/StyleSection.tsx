@@ -18,8 +18,8 @@ export default function StyleSection({
   setCustomStyle
 }: StyleSectionProps) {
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-neutral-200 overflow-hidden">
-      <div className="bg-neutral-50 border-b border-neutral-200 p-6 md:p-8">
+    <div className="bg-base-100 rounded-3xl shadow-sm border border-base-300 overflow-hidden">
+      <div className="bg-base-200 border-b border-base-300 p-6 md:p-8">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="bg-primary/10 p-3 rounded-xl">
@@ -28,18 +28,18 @@ export default function StyleSection({
               </svg>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-neutral-900">
+              <h2 className="text-2xl font-bold text-base-content">
                 Choose Ad Style
                 <span className="tooltip tooltip-right ml-1" data-tip="Visual aesthetic for your ad">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-neutral-400 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-base-content/40 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </span>
               </h2>
-              <p className="text-neutral-600 mt-1">Select a visual style that best fits your brand and product</p>
+              <p className="text-base-content/70 mt-1">Select a visual style that best fits your brand and product</p>
             </div>
           </div>
-          <div className="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-sm">3</div>
+          <div className="bg-primary text-base-100 w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-sm">3</div>
         </div>
       </div>
 
@@ -55,8 +55,8 @@ export default function StyleSection({
                 onChange={(e) => setSelectedStyle(e.target.value)}
                 className="peer sr-only"
               />
-              <div className="p-3 rounded-xl border-2 border-neutral-200 bg-neutral-50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all duration-200 h-full flex flex-col">
-                <div className="rounded-lg bg-white shadow-sm mb-2.5 overflow-hidden">
+              <div className="p-3 rounded-xl border-2 border-base-300 bg-base-200 peer-checked:border-primary peer-checked:bg-primary/5 transition-all duration-200 h-full flex flex-col">
+                <div className="rounded-lg bg-base-100 shadow-sm mb-2.5 overflow-hidden">
                   <Image
                     src={`/images/style-examples/${key === 'photo-realistic' ? 'example-fr' : 
                          key === '3d-rendered' ? 'example-3d' :
@@ -68,13 +68,13 @@ export default function StyleSection({
                     className="w-full h-auto"
                   />
                 </div>
-                <h3 className="font-semibold text-neutral-900 text-sm">{preset.name}</h3>
+                <h3 className="font-semibold text-base-content text-sm">{preset.name}</h3>
                 <div className="mt-1.5 space-y-1 text-xs">
-                  <p className="text-neutral-600">
-                    <span className="font-medium text-neutral-700">Used for:</span> {preset.usedFor.join(', ')}
+                  <p className="text-base-content/70">
+                    <span className="font-medium text-base-content/80">Used for:</span> {preset.usedFor.join(', ')}
                   </p>
-                  <p className="text-neutral-600">
-                    <span className="font-medium text-neutral-700">Think:</span> {preset.thinkOf}
+                  <p className="text-base-content/70">
+                    <span className="font-medium text-base-content/80">Think:</span> {preset.thinkOf}
                   </p>
                 </div>
               </div>
@@ -83,9 +83,9 @@ export default function StyleSection({
 
           {/* Divider with "or" */}
           <div className="col-span-2 lg:col-span-5 flex items-center gap-4 my-4">
-            <div className="flex-1 h-px bg-neutral-200"></div>
-            <div className="text-neutral-500 text-sm font-medium">or</div>
-            <div className="flex-1 h-px bg-neutral-200"></div>
+            <div className="flex-1 h-px bg-base-300"></div>
+            <div className="text-base-content/60 text-sm font-medium">or</div>
+            <div className="flex-1 h-px bg-base-300"></div>
           </div>
 
           {/* Custom Style */}
@@ -98,17 +98,17 @@ export default function StyleSection({
               onChange={(e) => setSelectedStyle(e.target.value)}
               className="peer sr-only"
             />
-            <div className="p-3 rounded-xl border-2 border-neutral-200 bg-neutral-50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all duration-200">
+            <div className="p-3 rounded-xl border-2 border-base-300 bg-base-200 peer-checked:border-primary peer-checked:bg-primary/5 transition-all duration-200">
               <div className="flex items-center gap-2 mb-2">
-                <h3 className="font-semibold text-neutral-900">Describe Your Style</h3>
-                <span className="text-xs text-neutral-500">(describe your own style)</span>
+                <h3 className="font-semibold text-base-content">Describe Your Style</h3>
+                <span className="text-xs text-base-content/60">(describe your own style)</span>
               </div>
               <textarea
                 value={customStyle}
                 onChange={(e) => setCustomStyle(e.target.value)}
                 disabled={selectedStyle !== 'custom'}
                 placeholder="Example: A modern, high-contrast style with dramatic shadows and a cinematic feel..."
-                className="textarea w-full h-20 text-sm bg-white border-neutral-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:bg-neutral-100 disabled:cursor-not-allowed transition-colors duration-200"
+                className="textarea w-full h-20 text-sm bg-base-100 border-base-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:bg-base-200 disabled:cursor-not-allowed transition-colors duration-200"
               />
             </div>
           </label>
