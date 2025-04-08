@@ -33,15 +33,6 @@ const PRESET_TEMPLATES: Template[] = [
     features: ['Prominent CTA', 'Price highlighting', 'Urgency elements'],
     bestFor: ['Sales', 'Limited time offers', 'Promotions'],
   },
-  {
-    id: 'brand-story',
-    name: 'Brand Story',
-    description: 'Emotional, narrative-driven ads that connect with your audience',
-    image: '/templates/brand-story.png',
-    platforms: ['Facebook', 'LinkedIn'],
-    features: ['Storytelling format', 'Brand-focused', 'Emotional appeal'],
-    bestFor: ['Brand awareness', 'Company culture', 'Mission statements'],
-  }
 ];
 
 export default function SelectGenerationTypePage() {

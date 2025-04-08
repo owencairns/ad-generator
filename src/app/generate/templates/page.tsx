@@ -9,6 +9,15 @@ import TemplateCard, { Template } from '../components/TemplateCard';
 // In a real app, this would be in a shared location
 const PRESET_TEMPLATES: Template[] = [
   {
+    id: 'clothing-showcase',
+    name: 'Clothing Showcase',
+    description: 'Professional template optimized for fashion and apparel products',
+    image: '/templates/clothing-showcase.png',
+    platforms: ['Instagram', 'Facebook', 'Pinterest'],
+    features: ['360° product view', 'Size selector', 'Color variants', 'Material details'],
+    bestFor: ['Fashion brands', 'Apparel stores', 'Accessories'],
+  },
+  {
     id: 'product-showcase',
     name: 'Product Showcase',
     description: 'Clean, professional product-focused ads perfect for e-commerce',
@@ -16,15 +25,6 @@ const PRESET_TEMPLATES: Template[] = [
     platforms: ['Instagram', 'Facebook'],
     features: ['Product-centric layout', 'Clean background', 'Professional lighting'],
     bestFor: ['E-commerce', 'Product launches', 'Feature highlights'],
-  },
-  {
-    id: 'brand-story',
-    name: 'Brand Story',
-    description: 'Emotional, narrative-driven ads that connect with your audience',
-    image: '/templates/brand-story.png',
-    platforms: ['Facebook', 'LinkedIn'],
-    features: ['Storytelling format', 'Brand-focused', 'Emotional appeal'],
-    bestFor: ['Brand awareness', 'Company culture', 'Mission statements'],
   },
   {
     id: 'special-offer',
