@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -9,21 +9,25 @@ import ChatMessage from '@/components/ChatMessage';
 import ChatInput from '@/components/ChatInput';
 import GenerationLoadingState from '@/app/generate/components/GenerationLoadingState';
 import { GenerationDocument } from '@/types/generation';
-import Image from 'next/image';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  images?: { url: string; file: File }[];
+  requestImage?: boolean | "product" | "inspiration";
+  imagePrompt?: string;
+  responseType?: 'text' | 'requestImage';
+  readyToGenerate?: boolean;
 }
 
 interface DisplayMessage {
   content: string;
   isUser: boolean;
-}
-
-interface UploadedImage {
-  url: string;
-  file: File;
+  images?: { url: string; file: File }[];
+  requestImage?: boolean | "product" | "inspiration";
+  imagePrompt?: string;
+  responseType?: 'text' | 'requestImage';
+  readyToGenerate?: boolean;
 }
 
 export default function ChatPage() {
@@ -31,16 +35,17 @@ export default function ChatPage() {
   const { user, loading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [displayMessages, setDisplayMessages] = useState<DisplayMessage[]>([{
-    content: "Hi! I'm your design assistant. I'll help you create the perfect ad. Let's start by discussing your product. What's the name of the product you want to advertise?",
+    content: "Hi! I'm your design assistant. I'll help you create the perfect ad. To get started, please upload product images so I can better understand what we're working with. This will help me provide tailored suggestions for your advertisement.",
     isUser: false,
+    requestImage: "product",
+    responseType: 'requestImage',
+    readyToGenerate: false
   }]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
-  const [productImages, setProductImages] = useState<UploadedImage[]>([]);
-  const productInputRef = useRef<HTMLInputElement>(null);
+  const [hasUploadedImages, setHasUploadedImages] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -75,6 +80,159 @@ export default function ChatPage() {
     }
   }, [isGenerating, user, currentGenerationId, router]);
 
+  const handleImageUpload = (files: File[], messageIndex: number) => {
+    // Create object URLs for the image files
+    const imageObjects = files.map(file => ({
+      url: URL.createObjectURL(file),
+      file
+    }));
+    
+    // Add the images to the message
+    const updatedMessages = [...displayMessages];
+    updatedMessages[messageIndex] = {
+      ...updatedMessages[messageIndex],
+      images: imageObjects
+    };
+    
+    setDisplayMessages(updatedMessages);
+    setHasUploadedImages(true);
+    
+    // If this is AI's message, also add a user message with the images
+    if (!updatedMessages[messageIndex].isUser) {
+      handleSendMessageWithImages(files);
+    }
+  };
+
+  const handleSendMessageWithImages = async (files: File[]) => {
+    if (isProcessing) return;
+    
+    setIsProcessing(true);
+    
+    try {
+      // Convert images to base64
+      const imagesData = await Promise.all(
+        files.map(async (file) => {
+          const buffer = await file.arrayBuffer();
+          const base64 = Buffer.from(buffer).toString('base64');
+          return {
+            data: `data:${file.type};base64,${base64}`,
+            objectUrl: URL.createObjectURL(file),
+            file
+          };
+        })
+      );
+      
+      // Add user message with images to the display
+      const imageObjects = imagesData.map(img => ({
+        url: img.objectUrl,
+        file: img.file
+      }));
+      
+      const userMessage: Message = {
+        role: 'user',
+        content: `Here ${files.length === 1 ? 'is' : 'are'} the product ${files.length === 1 ? 'image' : 'images'} you requested.`,
+        images: imageObjects
+      };
+      
+      const userDisplayMessage: DisplayMessage = {
+        content: `Here ${files.length === 1 ? 'is' : 'are'} the product ${files.length === 1 ? 'image' : 'images'} you requested.`,
+        isUser: true,
+        images: imageObjects
+      };
+      
+      const newMessages = [...messages, userMessage];
+      setDisplayMessages(prev => [...prev, userDisplayMessage]);
+      setMessages(newMessages);
+      
+      // Send the first image to the backend (Gemini can only process one image at a time in this version)
+      // In a production app, you might want to send multiple API calls or use a more advanced version of Gemini
+      const response = await fetch('http://localhost:3001/api/brainstorm/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: newMessages,
+          image: imagesData[0].data, // Send the first image
+          imageCount: imagesData.length // Let the backend know how many images were uploaded
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      
+      // Process JSON response
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      // Add safety check for JSON string content that might have escaped parsing
+      let content = data.content;
+      let responseType = data.responseType;
+      let requestImage = data.requestImage;
+      let imagePrompt = data.imagePrompt;
+      let readyToGenerate = data.readyToGenerate || false;
+      
+      // Check if the content itself is a JSON string that needs parsing
+      if (typeof content === 'string' && content.trim().startsWith('{') && content.trim().endsWith('}')) {
+        try {
+          console.log('Detected potential JSON string in content, attempting to parse');
+          const parsedContent = JSON.parse(content);
+          if (parsedContent.content) {
+            console.log('Successfully extracted content from nested JSON');
+            content = parsedContent.content;
+            // Use nested values if available
+            responseType = parsedContent.responseType || responseType;
+            requestImage = parsedContent.requestImage !== undefined ? parsedContent.requestImage : requestImage;
+            imagePrompt = parsedContent.imagePrompt || imagePrompt;
+            readyToGenerate = parsedContent.readyToGenerate !== undefined ? parsedContent.readyToGenerate : readyToGenerate;
+          }
+        } catch (error) {
+          console.error('Error parsing nested JSON:', error);
+          // Keep the original content if parsing fails
+        }
+      }
+      
+      // Add the assistant message with possibly updated values
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: content,
+        requestImage: requestImage,
+        imagePrompt: imagePrompt,
+        responseType: responseType,
+        readyToGenerate: readyToGenerate
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+      
+      // Create display message with the same properties
+      const assistantDisplayMessage: DisplayMessage = { 
+        content: content, 
+        isUser: false,
+        requestImage: requestImage,
+        imagePrompt: imagePrompt,
+        responseType: responseType,
+        readyToGenerate: readyToGenerate
+      };
+      
+      setDisplayMessages(prev => [...prev, assistantDisplayMessage]);
+    } catch (error) {
+      console.error('Chat error with image:', error);
+      setDisplayMessages(prev => [
+        ...prev,
+        {
+          content: 'Sorry, there was an error processing your images. Please try again.',
+          isUser: false,
+        },
+      ]);
+    }
+    
+    setIsProcessing(false);
+  };
+
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || isProcessing) return;
 
@@ -84,7 +242,10 @@ export default function ChatPage() {
     const userMessage: Message = { role: 'user', content: message };
     const newMessages = [...messages, userMessage];
 
-    setDisplayMessages(prev => [...prev, { content: message, isUser: true }]);
+    // Add user message to display messages
+    const userDisplayMessage: DisplayMessage = { content: message, isUser: true };
+    setDisplayMessages(prev => [...prev, userDisplayMessage]);
+    setMessages(newMessages);
 
     try {
       const response = await fetch('http://localhost:3001/api/brainstorm/chat', {
@@ -99,54 +260,75 @@ export default function ChatPage() {
         throw new Error(`Error: ${response.status}`);
       }
 
+      // Process JSON response
       const data = await response.json();
       
-      // Add assistant's response to both arrays
-      const assistantMessage: Message = { role: 'assistant', content: data.response };
-      setMessages([...newMessages, assistantMessage]);
-      setDisplayMessages(prev => [...prev, { content: data.response, isUser: false }]);
-      setIsComplete(data.isComplete);
+      if (data.error) {
+        throw new Error(data.error);
+      }
 
+      // Add safety check for JSON string content that might have escaped parsing
+      let content = data.content;
+      let responseType = data.responseType;
+      let requestImage = data.requestImage;
+      let imagePrompt = data.imagePrompt;
+      let readyToGenerate = data.readyToGenerate || false;
+      
+      // Check if the content itself is a JSON string that needs parsing
+      if (typeof content === 'string' && content.trim().startsWith('{') && content.trim().endsWith('}')) {
+        try {
+          console.log('Detected potential JSON string in content, attempting to parse');
+          const parsedContent = JSON.parse(content);
+          if (parsedContent.content) {
+            console.log('Successfully extracted content from nested JSON');
+            content = parsedContent.content;
+            // Use nested values if available
+            responseType = parsedContent.responseType || responseType;
+            requestImage = parsedContent.requestImage !== undefined ? parsedContent.requestImage : requestImage;
+            imagePrompt = parsedContent.imagePrompt || imagePrompt;
+            readyToGenerate = parsedContent.readyToGenerate !== undefined ? parsedContent.readyToGenerate : readyToGenerate;
+          }
+        } catch (error) {
+          console.error('Error parsing nested JSON:', error);
+          // Keep the original content if parsing fails
+        }
+      }
+      
+      // Add the assistant message with possibly updated values
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: content,
+        requestImage: requestImage,
+        imagePrompt: imagePrompt,
+        responseType: responseType,
+        readyToGenerate: readyToGenerate
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+      
+      // Create display message with the same properties
+      const assistantDisplayMessage: DisplayMessage = { 
+        content: content, 
+        isUser: false,
+        requestImage: requestImage,
+        imagePrompt: imagePrompt,
+        responseType: responseType,
+        readyToGenerate: readyToGenerate
+      };
+      
+      setDisplayMessages(prev => [...prev, assistantDisplayMessage]);
     } catch (error) {
       console.error('Chat error:', error);
       setDisplayMessages(prev => [
         ...prev,
-        { 
+        {
           content: 'Sorry, there was an error processing your message. Please try again.',
-          isUser: false 
-        }
+          isUser: false,
+        },
       ]);
     }
 
     setIsProcessing(false);
-  };
-
-  const handleProductUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length + productImages.length > 2) {
-      alert('You can only upload up to 2 product images');
-      return;
-    }
-
-    const newImages = files.map(file => ({
-      url: URL.createObjectURL(file),
-      file
-    }));
-    setProductImages([...productImages, ...newImages]);
-
-    // Send a message to the AI about the uploaded images
-    const imageCount = productImages.length + newImages.length;
-    handleSendMessage(`I've uploaded ${imageCount} product image${imageCount > 1 ? 's' : ''}.`);
-  };
-
-  const removeProductImage = (index: number) => {
-    const newImages = [...productImages];
-    URL.revokeObjectURL(newImages[index].url);
-    newImages.splice(index, 1);
-    setProductImages(newImages);
-
-    // Inform the AI about the removed image
-    handleSendMessage(`I've removed a product image. Now I have ${newImages.length} image${newImages.length !== 1 ? 's' : ''}.`);
   };
 
   const handleGenerateAd = async () => {
@@ -156,17 +338,27 @@ export default function ChatPage() {
       return;
     }
 
-    if (productImages.length === 0) {
-      alert('At least one product image is required. Please upload a product image before generating the ad.');
-      return;
-    }
-
     // Get the last message from the AI which contains the summary
     const lastAiMessage = displayMessages
       .filter(msg => !msg.isUser)
       .pop();
 
     if (!lastAiMessage) return;
+
+    // Get all uploaded images from the chat
+    const productImages: { url: string; file: File }[] = [];
+    
+    // Collect all images from user messages
+    displayMessages.forEach(msg => {
+      if (msg.isUser && msg.images && msg.images.length > 0) {
+        productImages.push(...msg.images);
+      }
+    });
+
+    if (productImages.length === 0) {
+      alert('At least one product image is required. Please upload a product image when asked.');
+      return;
+    }
 
     // Generate a new generation ID using timestamp
     const newGenerationId = Date.now().toString();
@@ -266,76 +458,43 @@ export default function ChatPage() {
       )}
 
       <div className="flex-1 overflow-y-auto p-4">
-        {displayMessages.map((message, index) => (
+        {displayMessages.map((msg, index) => (
           <ChatMessage
             key={index}
-            message={message.content}
-            isUser={message.isUser}
+            message={msg.content}
+            isUser={msg.isUser}
+            onImageUpload={!msg.isUser ? (files) => handleImageUpload(files, index) : undefined}
+            uploadedImages={msg.images}
+            isFirstMessage={index === 0 && !msg.isUser}
+            hasUploadedImages={hasUploadedImages}
+            requestImage={msg.requestImage}
+            imagePrompt={msg.imagePrompt}
+            responseType={msg.responseType}
+            readyToGenerate={msg.readyToGenerate}
           />
         ))}
       </div>
 
-      {/* Product Images Section */}
-      <div className="p-4 border-t border-base-300">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Product Images</h3>
+      {/* Show generate button based on readyToGenerate flag in the last assistant message */}
+      {(() => {
+        // Get the last message from the AI
+        const lastAiMessage = displayMessages
+          .filter(msg => !msg.isUser)
+          .pop();
+        
+        // Only show the generate button if the last AI message has readyToGenerate set to true
+        return lastAiMessage?.readyToGenerate && (
+          <div className="p-4 border-t border-base-300 bg-base-200">
             <button
-              onClick={() => productInputRef.current?.click()}
-              className="btn btn-sm btn-outline"
-              disabled={productImages.length >= 2}
+              onClick={handleGenerateAd}
+              className="btn btn-primary w-full"
+              disabled={!hasUploadedImages}
             >
-              Upload Image
+              Generate Ad
             </button>
-            <input
-              ref={productInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleProductUpload}
-              className="hidden"
-            />
           </div>
-          
-          {productImages.length > 0 ? (
-            <div className="flex gap-4 overflow-x-auto pb-2">
-              {productImages.map((image, index) => (
-                <div key={index} className="relative w-24 h-24 flex-shrink-0">
-                  <Image
-                    src={image.url}
-                    alt={`Product ${index + 1}`}
-                    fill
-                    className="object-cover rounded-lg"
-                  />
-                  <button
-                    onClick={() => removeProductImage(index)}
-                    className="absolute -top-2 -right-2 bg-base-100 rounded-full p-1 shadow-md hover:bg-base-200"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center p-4 border-2 border-dashed rounded-lg text-base-content/70">
-              Upload at least one product image to generate your ad
-            </div>
-          )}
-        </div>
-      </div>
-
-      {isComplete && (
-        <div className="p-4 border-t border-base-300 bg-base-200">
-          <button
-            onClick={handleGenerateAd}
-            className="btn btn-primary w-full"
-            disabled={productImages.length === 0}
-          >
-            Generate Ad
-          </button>
-        </div>
-      )}
+        );
+      })()}
 
       <ChatInput onSendMessage={handleSendMessage} disabled={isProcessing} />
     </div>
