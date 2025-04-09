@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { router as generateRouter } from "./routes/generate";
+import brainstormRouter from "./routes/brainstorm";
 
 // Load environment variables
 dotenv.config();
@@ -27,12 +28,12 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   if (req.method === "POST") {
     console.log("Request body:", {
+      path: req.path,
       keys: Object.keys(req.body),
+      messageLength: req.body.message?.length,
+      stateKeys: req.body.state ? Object.keys(req.body.state) : undefined,
       userId: req.body.userId,
       generationId: req.body.generationId,
-      hasDescription: !!req.body.description,
-      productImagesCount: req.body.productImages?.length,
-      inspirationImagesCount: req.body.inspirationImages?.length,
     });
   }
   next();
@@ -40,7 +41,28 @@ app.use((req, res, next) => {
 
 // Routes
 app.use("/api/generate", generateRouter);
+app.use("/api/brainstorm", brainstormRouter);
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
+// Error handling middleware
+app.use((err: Error, req: express.Request, res: express.Response) => {
+  console.error("Error:", err);
+  res.status(500).json({
+    error:
+      process.env.NODE_ENV === "development"
+        ? err.message
+        : "Internal server error",
+  });
+});
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
+  console.log(`Available routes:`);
+  console.log(` - POST /api/generate`);
+  console.log(` - POST /api/brainstorm/chat`);
+  console.log(` - GET /health`);
 });

@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { router as generateRouter } from "./routes/generate";
+import brainstormRouter from "./routes/brainstorm";
 
 // Load environment variables
 dotenv.config();
@@ -16,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/api/generate", generateRouter);
+app.use("/api/brainstorm", brainstormRouter);
 
 // Health check endpoint
 app.get("/health", (req: Request, res: Response) => {
