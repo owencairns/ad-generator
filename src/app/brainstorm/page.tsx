@@ -35,10 +35,10 @@ export default function ChatPage() {
   const { user, loading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [displayMessages, setDisplayMessages] = useState<DisplayMessage[]>([{
-    content: "Hi! I'm your design assistant. I'll help you create the perfect ad. To get started, please upload product images so I can better understand what we're working with. This will help me provide tailored suggestions for your advertisement.",
+    content: "Hi there! 👋 I'm your creative ad assistant. I'd love to help you create an amazing advertisement. To get started, could you tell me a bit about the product you'd like to advertise? Once you share some details, I'll ask you to upload product images so I can better understand what we're working with.",
     isUser: false,
-    requestImage: "product",
-    responseType: 'requestImage',
+    requestImage: false,
+    responseType: 'text',
     readyToGenerate: false
   }]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -253,48 +253,31 @@ export default function ChatPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({
+          messages: newMessages,
+          image: null,
+          imageCount: 0
+        }),
       });
 
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
 
-      // Process JSON response
       const data = await response.json();
-      
+
       if (data.error) {
         throw new Error(data.error);
       }
 
-      // Add safety check for JSON string content that might have escaped parsing
-      let content = data.content;
-      let responseType = data.responseType;
-      let requestImage = data.requestImage;
-      let imagePrompt = data.imagePrompt;
-      let readyToGenerate = data.readyToGenerate || false;
-      
-      // Check if the content itself is a JSON string that needs parsing
-      if (typeof content === 'string' && content.trim().startsWith('{') && content.trim().endsWith('}')) {
-        try {
-          console.log('Detected potential JSON string in content, attempting to parse');
-          const parsedContent = JSON.parse(content);
-          if (parsedContent.content) {
-            console.log('Successfully extracted content from nested JSON');
-            content = parsedContent.content;
-            // Use nested values if available
-            responseType = parsedContent.responseType || responseType;
-            requestImage = parsedContent.requestImage !== undefined ? parsedContent.requestImage : requestImage;
-            imagePrompt = parsedContent.imagePrompt || imagePrompt;
-            readyToGenerate = parsedContent.readyToGenerate !== undefined ? parsedContent.readyToGenerate : readyToGenerate;
-          }
-        } catch (error) {
-          console.error('Error parsing nested JSON:', error);
-          // Keep the original content if parsing fails
-        }
-      }
-      
-      // Add the assistant message with possibly updated values
+      // Process the response
+      const content = data.content;
+      const responseType = data.responseType;
+      const requestImage = data.requestImage;
+      const imagePrompt = data.imagePrompt;
+      const readyToGenerate = data.readyToGenerate || false;
+
+      // Add the assistant message
       const assistantMessage: Message = {
         role: 'assistant',
         content: content,
@@ -303,20 +286,32 @@ export default function ChatPage() {
         responseType: responseType,
         readyToGenerate: readyToGenerate
       };
-      
+
       setMessages(prev => [...prev, assistantMessage]);
-      
-      // Create display message with the same properties
-      const assistantDisplayMessage: DisplayMessage = { 
-        content: content, 
+
+      // Create display message
+      const assistantDisplayMessage: DisplayMessage = {
+        content: content,
         isUser: false,
         requestImage: requestImage,
         imagePrompt: imagePrompt,
         responseType: responseType,
         readyToGenerate: readyToGenerate
       };
-      
+
       setDisplayMessages(prev => [...prev, assistantDisplayMessage]);
+
+      // If we're ready to generate, show the generate button
+      if (readyToGenerate) {
+        setDisplayMessages(prev => [
+          ...prev,
+          {
+            content: "Great! I have all the information I need to create your ad. Would you like me to generate it now?",
+            isUser: false,
+            readyToGenerate: true
+          }
+        ]);
+      }
     } catch (error) {
       console.error('Chat error:', error);
       setDisplayMessages(prev => [
