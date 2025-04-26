@@ -9,10 +9,11 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="mb-4 md:mb-0">
             <Link href="/" className="flex items-center gap-1 font-bold text-xl">
-              <span className="text-primary">Ad</span>
-              <span className="text-base-content">Generator</span>
+              <span className="text-base-content">E</span>
+              <span className="text-primary">AD</span>
+              <span className="text-base-content">SY</span>
             </Link>
-            <p className="text-base-content/60 text-sm mt-2">© 2024 AdGenerator - All rights reserved</p>
+            <p className="text-base-content/60 text-sm mt-2">© 2024 EADSY - All rights reserved</p>
           </div>
 
           <div className="flex flex-col md:flex-row gap-6">

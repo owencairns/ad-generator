@@ -11,7 +11,13 @@ export default function Navbar() {
     return (
         <div className="navbar bg-base-100 border-b border-base-200">
             <div className="flex-1">
-                <Link href="/" className="btn btn-ghost text-xl">Ad Generator</Link>
+                <Link href="/" className="btn btn-ghost text-xl font-bold">
+                    <div className="flex items-center tracking-tight">
+                        <span className="text-base-content">E</span>
+                        <span className="text-primary">AD</span>
+                        <span className="text-base-content">SY</span>
+                    </div>
+                </Link>
             </div>
             <div className="flex-none gap-2">
                 <ThemeToggle />
