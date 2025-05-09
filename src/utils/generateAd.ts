@@ -179,7 +179,7 @@ export const generateAd = async (
     if (discount) requestData.discount = discount;
 
     // Make API request
-    const apiUrl = process.env.BACKEND_URL || "http://localhost:3001";
+    const apiUrl = process.env.BACKEND_URL;
     const response = await fetch(`${apiUrl}/api/generate`, {
       method: "POST",
       headers: {
