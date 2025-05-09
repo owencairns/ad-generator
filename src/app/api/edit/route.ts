@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Call the backend API to process the edit
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:3001";
+    const backendUrl = process.env.BACKEND_URL;
     const backendResponse = await fetch(`${backendUrl}/api/edit`, {
       method: "POST",
       headers: {
