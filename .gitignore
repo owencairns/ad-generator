@@ -46,3 +46,4 @@ next-env.d.ts
 /backend/.env.*
 /backend/dist
 /backend/build
+/backend/deploy.sh
