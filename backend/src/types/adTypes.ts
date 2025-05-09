@@ -14,9 +14,3 @@ export interface ChatMessage {
   content: string;
   isUser: boolean;
 }
-
-export interface BrainstormState {
-  messages: ChatMessage[];
-  adState: Partial<AdState>;
-  isComplete: boolean;
-}

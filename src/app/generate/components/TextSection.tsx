@@ -28,8 +28,8 @@ export default function TextSection({
       <div className="bg-base-200 border-b border-base-300 p-6 md:p-8">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div className="bg-primary/10 p-3 rounded-xl">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-secondary/10 p-3 rounded-xl">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
               </svg>
             </div>
@@ -38,7 +38,7 @@ export default function TextSection({
               <p className="text-base-content/70 mt-1">Add optional text to your ad</p>
             </div>
           </div>
-          <div className="bg-primary text-base-100 w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-sm">5</div>
+          <div className="bg-accent text-accent-content w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-sm">5</div>
         </div>
       </div>
       
@@ -52,7 +52,7 @@ export default function TextSection({
             <input
               type="text"
               placeholder="Short, bold hook – max 6 words"
-              className="input input-bordered w-full bg-base-200 rounded-xl border-base-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200"
+              className="input input-bordered w-full bg-base-200 rounded-xl border-base-300 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors duration-200"
               value={mainText}
               onChange={(e) => setMainText(e.target.value)}
               maxLength={50}
@@ -67,7 +67,7 @@ export default function TextSection({
             <input
               type="text"
               placeholder="Optional support line under the main headline"
-              className="input input-bordered w-full bg-base-200 rounded-xl border-base-300 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors duration-200"
+              className="input input-bordered w-full bg-base-200 rounded-xl border-base-300 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors duration-200"
               value={secondaryText}
               onChange={(e) => setSecondaryText(e.target.value)}
               maxLength={100}
@@ -83,7 +83,7 @@ export default function TextSection({
               <div className="flex items-center gap-2 mb-2">
                 <input 
                   type="checkbox" 
-                  className="checkbox checkbox-primary"
+                  className="checkbox checkbox-secondary"
                   checked={textPosition === 'auto'}
                   onChange={(e) => setTextPosition(e.target.checked ? 'auto' : '')}
                 />

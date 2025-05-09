@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { router as generateRouter } from "./routes/generate";
-import brainstormRouter from "./routes/brainstorm";
+import { router as editRouter } from "./routes/edit";
 
 // Load environment variables
 dotenv.config();
@@ -11,13 +11,7 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Enable CORS for frontend
-app.use(
-  cors({
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"],
-  })
-);
+app.use(cors());
 
 // Add body parsing middleware
 app.use(express.json({ limit: "50mb" }));
@@ -41,7 +35,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use("/api/generate", generateRouter);
-app.use("/api/brainstorm", brainstormRouter);
+app.use("/api/edit", editRouter);
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -63,6 +57,6 @@ app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
   console.log(`Available routes:`);
   console.log(` - POST /api/generate`);
-  console.log(` - POST /api/brainstorm/chat`);
+  console.log(` - POST /api/edit`);
   console.log(` - GET /health`);
 });

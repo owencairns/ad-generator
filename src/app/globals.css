@@ -1,2 +1,206 @@
 @import "tailwindcss";
-@plugin "daisyui"
+@plugin "daisyui";
+
+/* Base styles to ensure full-height layout with proper background */
+html, body {
+  height: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background-color: hsl(var(--b300));
+}
+
+#__next, .app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure the fullscreen modals cover the entire screen */
+.fixed.inset-0 {
+  height: 100vh;
+  width: 100vw;
+}
+
+@plugin "daisyui/theme" {
+  name: "light";
+  color-scheme: "light";
+  /* Light theme colors based on the provided palette, converted to OKLCH */
+  --color-base-100: oklch(97.5% 0.01 240.0); /* #F9FAFB - Ultra-light grey background */
+  --color-base-200: oklch(95.5% 0.015 240.0); /* #F3F4F6 - Slightly darker for contrast elements */
+  --color-base-300: oklch(92.0% 0.02 240.0); /* #E5E7EB - For borders and dividers */
+  --color-base-content: oklch(23.0% 0.01 240.0); /* #111827 - Primary text color */
+  --color-primary: oklch(67.0% 0.15 250.0); /* #4A90E2 - Azure Blue */
+  --color-primary-content: oklch(100.0% 0.001 240.0); /* #FFFFFF - White text on primary */
+  --color-secondary: oklch(60.0% 0.17 305.0); /* #9B59B6 - Soft Purple */
+  --color-secondary-content: oklch(100.0% 0.001 240.0); /* #FFFFFF - White text on secondary */
+  --color-accent: oklch(60.0% 0.17 305.0); /* #9B59B6 - Same as secondary */
+  --color-accent-content: oklch(100.0% 0.001 240.0); /* #FFFFFF - White text on accent */
+  --color-neutral: oklch(100.0% 0.001 240.0); /* #FFFFFF - Pure white for sidebar/cards */
+  --color-neutral-content: oklch(55.0% 0.01 240.0); /* #6B7280 - Secondary text color */
+  --color-info: oklch(67.0% 0.15 250.0); /* #4A90E2 - Info uses primary color */
+  --color-info-content: oklch(100.0% 0.001 240.0); /* #FFFFFF - White text on info */
+  --color-success: oklch(70.0% 0.15 150.0); /* #10B981 - Green for success states */
+  --color-success-content: oklch(100.0% 0.001 240.0); /* #FFFFFF - White text on success */
+  --color-warning: oklch(80.0% 0.15 85.0); /* #F59E0B - Amber for warnings */
+  --color-warning-content: oklch(100.0% 0.001 240.0); /* #FFFFFF - White text on warning */
+  --color-error: oklch(65.0% 0.20 25.0); /* #EF4444 - Red for errors */
+  --color-error-content: oklch(100.0% 0.001 240.0); /* #FFFFFF - White text on error */
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 1;
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+@plugin "daisyui/theme" {
+  name: "dark";
+  color-scheme: "dark";
+  --color-base-100: oklch(13.0% 0.01 260.0); /* Darker gray background with minimal blue */
+  --color-base-200: oklch(16.0% 0.02 270.0); /* Slightly lighter dark gray for contrast elements */
+  --color-base-300: oklch(15.0% 0.02 240.0); /* Dark gray-blue background for borders and dividers */
+  --color-base-content: oklch(98.0% 0.01 240.0); /* Bright text for dark theme */
+  --color-primary: oklch(70.0% 0.25 265.0); /* Vibrant blue-purple that pops */
+  --color-primary-content: oklch(100.0% 0.001 240.0); /* White text on primary */
+  --color-secondary: oklch(65.0% 0.23 310.0); /* Vibrant purple that pops */
+  --color-secondary-content: oklch(100.0% 0.001 240.0); /* White text on secondary */
+  --color-accent: oklch(75.0% 0.20 200.0); /* Bright cyan accent */
+  --color-accent-content: oklch(100.0% 0.001 240.0); /* White text on accent */
+  --color-neutral: oklch(11.0% 0.02 240.0); /* Darker neutral for contrast */
+  --color-neutral-content: oklch(98.0% 0.01 240.0); /* Bright text for dark theme */
+  --color-info: oklch(70.0% 0.25 265.0); /* Same as primary */
+  --color-info-content: oklch(100.0% 0.001 240.0); /* White text on info */
+  --color-success: oklch(70.0% 0.20 150.0); /* Brighter green for dark mode */
+  --color-success-content: oklch(100.0% 0.001 240.0); /* White text on success */
+  --color-warning: oklch(75.0% 0.18 80.0); /* Brighter amber for dark mode */
+  --color-warning-content: oklch(100.0% 0.001 240.0); /* White text on warning */
+  --color-error: oklch(70.0% 0.25 30.0); /* Brighter red for dark mode */
+  --color-error-content: oklch(100.0% 0.001 240.0); /* White text on error */
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 0 rgba(0, 0, 0, 0.2);
+  --shadow-hover: 0 6px 8px -1px rgba(0, 0, 0, 0.3), 0 3px 5px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+/* Floating animations for login collage */
+@keyframes float {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(0.25deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+@keyframes float-reverse {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(3px) rotate(-0.25deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+.animate-float {
+  animation: float 9s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float 12s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: float-reverse 9s ease-in-out infinite;
+}
+
+.animate-float-slow-reverse {
+  animation: float-reverse 13s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 10s ease-in-out 1s infinite;
+}
+
+/* Custom radial gradient for login page */
+.bg-gradient-radial {
+  background-image: radial-gradient(circle, var(--tw-gradient-stops));
+}
+
+/* Enhanced shadow effects for collage */
+@layer utilities {
+  .collage-shadow-soft {
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1)) 
+            drop-shadow(0 2px 4px rgba(0, 0, 0, 0.06));
+  }
+  
+  .collage-shadow-medium {
+    filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.15)) 
+            drop-shadow(0 3px 6px rgba(0, 0, 0, 0.1));
+  }
+  
+  .collage-shadow-strong {
+    filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.2)) 
+            drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+  }
+  
+  .collage-blur-edge {
+    mask-image: linear-gradient(to bottom,
+      transparent 0%,
+      black 5%,
+      black 95%,
+      transparent 100%
+    );
+  }
+}
+
+/* Template card consistent sizing */
+.grid > div > button {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.grid > div > button > div:first-child {
+  height: 240px;
+  min-height: 240px; /* Ensures consistent image height */
+  width: 100%; 
+}
+
+.grid > div > button > div:last-child {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}

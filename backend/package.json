@@ -2,12 +2,14 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "Backend server for AI ad generation",
-  "main": "dist/server.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "ts-node src/index.ts",
+    "start": "node dist/index.js",
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "bash deploy.sh",
+    "deploy:prod": "bash deploy.sh ad-generator-570e6"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +26,7 @@
     "express-async-handler": "^1.2.0",
     "firebase-admin": "^13.2.0",
     "langchain": "^0.3.20",
+    "openai": "^4.96.0",
     "sharp": "^0.33.5",
     "zod": "^3.24.2"
   },

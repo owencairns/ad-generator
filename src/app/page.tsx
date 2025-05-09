@@ -31,10 +31,10 @@ export default function HomePage() {
 
   // Show landing page for non-logged in users
   return (
-    <main className="min-h-screen bg-base-100 text-base-content overflow-x-hidden">
+    <main className="min-h-screen bg-base-300 text-base-content overflow-x-hidden">
 
       {/* Hero Section */}
-      <section className="bg-base-100 py-12 md:py-20">
+      <section className="bg-base-300 py-12 md:py-20">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-6xl font-bold text-base-content mb-6">
@@ -56,7 +56,7 @@ export default function HomePage() {
           <div className="mt-16 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Before */}
             <div className="relative rounded-3xl overflow-hidden shadow-xl">
-              <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-base-200 rounded-full px-6 py-2 z-10 font-bold">
+              <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-base-300 rounded-full px-6 py-2 z-10 font-medium">
                 Before
               </div>
               <div className="relative aspect-[3/4] w-full">
@@ -71,7 +71,7 @@ export default function HomePage() {
 
             {/* After */}
             <div className="relative rounded-3xl overflow-hidden shadow-xl">
-              <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-primary rounded-full px-6 py-2 z-10 font-bold text-primary-content">
+              <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-primary rounded-full px-6 py-2 z-10 font-medium text-primary-content">
                 After
               </div>
               <div className="relative aspect-[3/4] w-full">

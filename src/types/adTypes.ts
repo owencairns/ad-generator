@@ -1,3 +1,5 @@
+export type TemplateType = "product-showcase" | "lifestyle" | "clothing-showcase" | "special-offer";
+
 export interface AdState {
   platform: string;
   objective: string;
@@ -9,15 +11,10 @@ export interface AdState {
   budget?: string;
   imageStyle?: string;
   summary?: string;
+  template?: TemplateType;
 }
 
 export interface ChatMessage {
   content: string;
   isUser: boolean;
-}
-
-export interface BrainstormState {
-  messages: ChatMessage[];
-  adState: Partial<AdState>;
-  isComplete: boolean;
 }

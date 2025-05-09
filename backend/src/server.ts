@@ -2,7 +2,6 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { router as generateRouter } from "./routes/generate";
-import brainstormRouter from "./routes/brainstorm";
 
 // Load environment variables
 dotenv.config();
@@ -12,12 +11,11 @@ const port = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/api/generate", generateRouter);
-app.use("/api/brainstorm", brainstormRouter);
 
 // Health check endpoint
 app.get("/health", (req: Request, res: Response) => {
@@ -36,4 +34,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 // Start server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
+  console.log(`Available routes:`);
+  console.log(` - POST /api/generate`);
+  console.log(` - GET /health`);
 });

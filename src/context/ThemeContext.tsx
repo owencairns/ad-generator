@@ -16,10 +16,18 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [theme, setThemeState] = useState<Theme>('light');
     const [isLoading, setIsLoading] = useState(true);
+    const [isMounted, setIsMounted] = useState(false);
     const { user } = useAuth();
+
+    // Client-side only code
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     // Initialize theme from localStorage and sync with Firebase
     useEffect(() => {
+        if (!isMounted) return;
+
         const initializeTheme = async () => {
             try {
                 // First check localStorage
@@ -64,32 +72,39 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         };
 
         initializeTheme();
-    }, [user]);
+    }, [user, isMounted]);
 
     // Update theme in both localStorage and Firebase
     const setTheme = async (newTheme: Theme) => {
         try {
             setThemeState(newTheme);
-            localStorage.setItem('theme', newTheme);
             
-            if (user) {
-                await setDoc(doc(db, 'users', user.uid), { theme: newTheme }, { merge: true });
+            if (isMounted) {
+                localStorage.setItem('theme', newTheme);
+                
+                if (user) {
+                    await setDoc(doc(db, 'users', user.uid), { theme: newTheme }, { merge: true });
+                }
+                
+                // Apply theme to document
+                document.documentElement.setAttribute('data-theme', newTheme);
             }
-            
-            // Apply theme to document
-            document.documentElement.setAttribute('data-theme', newTheme);
         } catch (error) {
             console.error('Error updating theme:', error);
             // Revert to previous theme if there's an error
             setThemeState(theme);
-            localStorage.setItem('theme', theme);
+            if (isMounted) {
+                localStorage.setItem('theme', theme);
+            }
         }
     };
 
     // Apply theme to document whenever it changes
     useEffect(() => {
-        document.documentElement.setAttribute('data-theme', theme);
-    }, [theme]);
+        if (isMounted) {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+    }, [theme, isMounted]);
 
     return (
         <ThemeContext.Provider value={{ theme, setTheme, isLoading }}>

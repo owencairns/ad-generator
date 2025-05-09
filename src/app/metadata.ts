@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Ad Generator",
-  description: "Generate ads with ease",
+  title: "Eadsy | Creative Ad Generation",
+  description: "Generate professional ads easily with Eadsy's intelligent creative platform",
 };

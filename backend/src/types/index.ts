@@ -1,4 +1,9 @@
 export type GenerationStatus = "processing" | "completed" | "error";
+export type TemplateType =
+  | "product-showcase"
+  | "lifestyle"
+  | "clothing-showcase"
+  | "special-offer";
 
 export interface GenerateRequestBody {
   description: string;
@@ -8,14 +13,33 @@ export interface GenerateRequestBody {
   productImages: string[];
   userId: string;
   generationId: string;
-  style: string;
-  aspectRatio: string;
+  style?: string;
+  aspectRatio?: string;
   textInfo?: {
     mainText: string;
     secondaryText: string;
     position: string;
     styleNotes: string;
   };
+  // Template information
+  template?: TemplateType;
+
+  // Lifestyle template specific fields
+  lifestyleDescription?: string;
+  environment?: "indoor" | "outdoor" | "both";
+  timeOfDay?: "day" | "night" | "any";
+  activityDescription?: string;
+  moodKeywords?: string;
+
+  // Clothing showcase template specific fields
+  clothingType?: string;
+  shotType?: "closeup" | "full-body";
+  viewType?: "single" | "multiple";
+
+  // Special offer template specific fields
+  offerDescription?: string;
+  price?: string;
+  discount?: string;
 }
 
 export interface GenerateResponseData {
@@ -24,6 +48,15 @@ export interface GenerateResponseData {
     imageUrl?: string;
     error?: string;
   };
+}
+
+export interface GenerationVersion {
+  createdAt: FirebaseFirestore.Timestamp;
+  imageUrl?: string;
+  editDescription?: string;
+  status: GenerationStatus;
+  error?: string;
+  versionId?: string;
 }
 
 export interface FirestoreGenerationDocument {
@@ -45,6 +78,28 @@ export interface FirestoreGenerationDocument {
     position: string;
     styleNotes: string;
   };
+  // Template information
+  template?: TemplateType;
+
+  // Lifestyle template specific fields
+  lifestyleDescription?: string;
+  environment?: string;
+  timeOfDay?: string;
+  activityDescription?: string;
+  moodKeywords?: string;
+
+  // Clothing showcase template specific fields
+  clothingType?: string;
+  shotType?: string;
+  viewType?: string;
+
+  // Special offer template specific fields
+  offerDescription?: string;
+  price?: string;
+  discount?: string;
+  
+  // Version tracking
+  versions?: GenerationVersion[];
 }
 
 export interface ProcessedImage {

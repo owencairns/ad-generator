@@ -4,8 +4,17 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/app/firebase';
+import { UserProfile } from '@/types/userTypes';
+import { saveUserData } from '@/utils/firebaseHelpers';
+import { FiEdit2, FiSave, FiX, FiCheck } from 'react-icons/fi';
+import { HiOutlineOfficeBuilding, HiOutlineGlobe, HiOutlineTag, HiOutlineUserGroup, HiOutlineCalendar, HiOutlineLocationMarker } from 'react-icons/hi';
+import { MdOutlineBusinessCenter } from 'react-icons/md';
+import { BsGraphUp } from 'react-icons/bs';
+import { TbTarget } from 'react-icons/tb';
+import { IoIosTime } from 'react-icons/io';
+import { toast } from 'react-hot-toast';
 
 // Add this CSS at the top of the file
 const ThemeIcon = ({ theme }: { theme: string }) => (
@@ -65,32 +74,123 @@ const ThemeIcon = ({ theme }: { theme: string }) => (
     </div>
 );
 
+// Company size options
+const COMPANY_SIZES = [
+  'Solo',
+  'Small (2-10 employees)',
+  'Medium (11-50 employees)',
+  'Large (51-200 employees)',
+  'Enterprise (201+ employees)'
+];
+
+// Industry options
+const INDUSTRIES = [
+  'E-commerce',
+  'Retail',
+  'Technology',
+  'Healthcare',
+  'Education',
+  'Finance',
+  'Food & Beverage',
+  'Manufacturing',
+  'Real Estate',
+  'Travel',
+  'Entertainment',
+  'Marketing',
+  'Consulting',
+  'Non-profit',
+  'Other'
+];
+
+// Marketing goals options
+const GOALS = [
+  'Increase brand awareness',
+  'Generate leads/customers',
+  'Promote new products/services',
+  'Engage with existing customers',
+  'Drive website traffic',
+  'Boost sales conversion',
+  'Increase social media presence',
+  'Improve customer retention',
+  'Enter new markets',
+  'Enhance brand image'
+];
+
+// Ad frequency options
+const AD_FREQUENCIES = [
+  'Daily',
+  'Weekly',
+  'Bi-weekly',
+  'Monthly',
+  'Quarterly',
+  'Occasionally as needed'
+];
+
 export default function ProfilePage() {
     const { user, loading, logout } = useAuth();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('profile');
     const [theme, setTheme] = useState('light');
     const [isSaving, setIsSaving] = useState(false);
+    const [userData, setUserData] = useState<Partial<UserProfile>>({});
+    const [formData, setFormData] = useState<Partial<UserProfile>>({});
+    const [savingSection, setSavingSection] = useState<string | null>(null);
 
-    // Load theme from Firebase
+    // Load user data from Firebase
     useEffect(() => {
-        const loadTheme = async () => {
+        const loadUserData = async () => {
             if (!user?.uid) return;
             
             try {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    const savedTheme = userData.theme || 'light';
-                    setTheme(savedTheme);
-                    document.documentElement.setAttribute('data-theme', savedTheme);
+                    const data = userDoc.data() as Partial<UserProfile>;
+                    console.log('User data loaded from Firebase:', data);
+                    console.log('Business data loaded:', data.business);
+                    
+                    // Ensure proper structure for nested objects
+                    if (!data.business) {
+                        data.business = {
+                            products: [],
+                            targetAudience: '',
+                            goals: [],
+                            adFrequency: ''
+                        };
+                    }
+                    
+                    if (!data.company) {
+                        data.company = {
+                            name: '',
+                            website: '',
+                            industry: '',
+                            size: '',
+                            founded: '',
+                            location: ''
+                        };
+                    }
+                    
+                    setUserData(data);
+                    setFormData(data);
+                    setTheme(data.theme || 'light');
+                    document.documentElement.setAttribute('data-theme', data.theme || 'light');
+                    
+                    // Check URL parameters for tab selection
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const tabParam = urlParams.get('tab');
+                    if (tabParam && ['profile', 'company', 'business', 'billing'].includes(tabParam)) {
+                        setActiveTab(tabParam);
+                    } else if (urlParams.get('from') === 'onboarding') {
+                        // Default to business tab if coming from onboarding
+                        setActiveTab('business');
+                    }
                 }
             } catch (error) {
-                console.error('Error loading theme:', error);
+                console.error('Error loading user data:', error);
+                toast.error('Failed to load your profile data');
             }
         };
 
-        loadTheme();
+        loadUserData();
     }, [user?.uid]);
 
     // Theme toggle handler with Firebase sync
@@ -101,18 +201,136 @@ export default function ProfilePage() {
         setIsSaving(true);
 
         try {
-            await updateDoc(doc(db, 'users', user.uid), {
-                theme: newTheme
-            });
+            // Use the helper function to save theme
+            await saveUserData(user.uid, { theme: newTheme });
             
             setTheme(newTheme);
             document.documentElement.setAttribute('data-theme', newTheme);
+            toast.success('Theme preference saved');
         } catch (error) {
             console.error('Error saving theme:', error);
             // Revert theme if save fails
             document.documentElement.setAttribute('data-theme', theme);
+            toast.error('Failed to save theme preference');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    // Handle form input changes
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>, 
+        section?: string, 
+        field?: string
+    ) => {
+        const { name, value } = e.target;
+        
+        if (section && field) {
+            // Handle nested fields (company, business, etc.)
+            setFormData(prev => {
+                const result = { ...prev };
+                
+                // Handle each section type specifically with proper typing
+                if (section === 'company' && result.company) {
+                    result.company = { 
+                        ...result.company, 
+                        [field]: value 
+                    };
+                } else if (section === 'business' && result.business) {
+                    result.business = { 
+                        ...result.business, 
+                        [field]: value 
+                    };
+                } else if (section === 'preferences' && result.preferences) {
+                    result.preferences = { 
+                        ...result.preferences, 
+                        [field]: value 
+                    };
+                } else {
+                    // Initialize the section if it doesn't exist
+                    // Type assertion is necessary for dynamic section assignment
+                    // @ts-expect-error - Suppressing error for dynamic property assignment
+                    result[section] = { 
+                        [field]: value 
+                    };
+                }
+                
+                return result;
+            });
+        } else {
+            // Handle top-level fields
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
+    };
+    
+    // Handle checkbox changes for goals
+    const handleGoalToggle = (goal: string) => {
+        const currentGoals = formData.business?.goals || [];
+        let newGoals;
+        
+        if (currentGoals.includes(goal)) {
+            newGoals = currentGoals.filter(g => g !== goal);
+        } else {
+            newGoals = [...currentGoals, goal];
+        }
+        
+        setFormData(prev => ({
+            ...prev,
+            business: {
+                ...prev.business,
+                goals: newGoals
+            }
+        }));
+    };
+    
+    // Handle form submission for each section
+    const saveSection = async (section: string) => {
+        if (!user?.uid) return;
+        
+        setSavingSection(section);
+        
+        try {
+            // Create a flat doc update that explicitly sets each field
+            const docData: Record<string, unknown> = {};
+            
+            // Determine which data to update based on section
+            if (section === 'personal') {
+                docData.displayName = formData.displayName;
+                docData.phoneNumber = formData.phoneNumber;
+                docData.bio = formData.bio;
+            } else if (section === 'company') {
+                docData.company = formData.company;
+            } else if (section === 'business') {
+                // Handle business data specially - explicitly set each field
+                const businessData = formData.business;
+                if (businessData) {
+                    docData.business = {
+                        products: businessData.products || [],
+                        targetAudience: businessData.targetAudience || '',
+                        goals: businessData.goals || [],
+                        adFrequency: businessData.adFrequency || ''
+                    };
+                }
+            }
+            
+            // Use setDoc with merge for more reliable updates
+            await setDoc(doc(db, 'users', user.uid), docData, { merge: true });
+            
+            // Update local userData state to reflect changes
+            setUserData(prev => ({
+                ...prev,
+                ...docData
+            }));
+            
+            toast.success('Changes saved successfully');
+        } catch (error) {
+            console.error(`Error saving ${section} information:`, error);
+            toast.error(`Failed to save ${section} information`);
+        } finally {
+            setSavingSection(null);
         }
     };
 
@@ -139,8 +357,8 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8 transition-colors duration-200">
-            <div className="flex flex-col gap-6">
+        <div className="container mx-auto px-4 pt-8 pb-16 transition-colors duration-200">
+            <div className="flex flex-col gap-8">
                 {/* Profile Header */}
                 <div className="bg-base-100 rounded-xl shadow-lg p-8 transition-all duration-200 hover:shadow-xl">
                     <div className="flex flex-col md:flex-row items-center gap-8">
@@ -149,7 +367,7 @@ export default function ProfilePage() {
                                 <div className="w-36 h-36 rounded-full overflow-hidden border-4 border-primary/20 transition-all duration-200 group-hover:border-primary/40">
                                     <Image
                                         src={user.photoURL}
-                                        alt={user.displayName || 'Profile'}
+                                        alt={userData.displayName || user.displayName || 'Profile'}
                                         width={144}
                                         height={144}
                                         className="object-cover transition-transform duration-200 group-hover:scale-105"
@@ -157,21 +375,28 @@ export default function ProfilePage() {
                                 </div>
                             ) : (
                                 <div className="w-36 h-36 rounded-full bg-primary/10 flex items-center justify-center text-5xl font-bold text-primary border-4 border-primary/20 transition-all duration-200 group-hover:border-primary/40">
-                                    {user.displayName ? user.displayName.charAt(0).toUpperCase() : user.email?.charAt(0).toUpperCase()}
+                                    {userData.displayName ? userData.displayName.charAt(0).toUpperCase() : 
+                                     user.displayName ? user.displayName.charAt(0).toUpperCase() : 
+                                     user.email?.charAt(0).toUpperCase()}
                                 </div>
                             )}
                             <button className="btn btn-circle btn-sm btn-primary absolute bottom-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-4 h-4">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
+                                <FiEdit2 className="w-4 h-4" />
                             </button>
                         </div>
                         <div className="flex-1 text-center md:text-left space-y-3">
-                            <h1 className="text-3xl font-bold text-base-content">{user.displayName || 'User'}</h1>
+                            <h1 className="text-3xl font-bold text-base-content">
+                                {userData.displayName || user.displayName || 'User'}
+                            </h1>
                             <p className="text-base-content/70 text-lg">{user.email}</p>
                             <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
                                 <span className="badge badge-primary badge-lg">Free Plan</span>
-                                <span className="badge badge-ghost badge-lg">Joined 2023</span>
+                                <span className="badge badge-ghost badge-lg">
+                                    Joined {userData.joinDate ? new Date(userData.joinDate.toDate()).getFullYear() : new Date().getFullYear()}
+                                </span>
+                                {userData.company?.industry && (
+                                    <span className="badge badge-secondary badge-lg">{userData.company.industry}</span>
+                                )}
                             </div>
                         </div>
                         <div className="flex flex-col gap-3">
@@ -200,6 +425,18 @@ export default function ProfilePage() {
                             Profile Information
                         </button>
                         <button
+                            className={`tab tab-lg transition-all duration-200 ${activeTab === 'company' ? 'tab-active' : ''}`}
+                            onClick={() => setActiveTab('company')}
+                        >
+                            Company
+                        </button>
+                        <button
+                            className={`tab tab-lg transition-all duration-200 ${activeTab === 'business' ? 'tab-active' : ''}`}
+                            onClick={() => setActiveTab('business')}
+                        >
+                            Business
+                        </button>
+                        <button
                             className={`tab tab-lg transition-all duration-200 ${activeTab === 'billing' ? 'tab-active' : ''}`}
                             onClick={() => setActiveTab('billing')}
                         >
@@ -210,15 +447,32 @@ export default function ProfilePage() {
                     {/* Profile Tab Content */}
                     {activeTab === 'profile' && (
                         <div className="bg-base-100 rounded-xl shadow-lg p-8 transition-all duration-200 hover:shadow-xl">
-                            <h2 className="text-2xl font-bold mb-8">Profile Information</h2>
+                            <div className="flex justify-between items-center mb-8">
+                                <h2 className="text-2xl font-bold">Personal Information</h2>
+                                <button 
+                                    className="btn btn-sm btn-ghost btn-circle"
+                                    onClick={() => saveSection('personal')}
+                                    disabled={savingSection === 'personal'}
+                                >
+                                    {savingSection === 'personal' ? (
+                                        <span className="loading loading-spinner loading-sm"></span>
+                                    ) : (
+                                        <FiSave className="w-5 h-5" />
+                                    )}
+                                </button>
+                            </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="form-control w-full">
                                     <label className="label">
                                         <span className="label-text text-base">Name</span>
                                     </label>
-                                    <input type="text" className="input input-bordered w-full transition-all duration-200 focus:input-primary"
-                                        defaultValue={user.displayName || ''}
+                                    <input 
+                                        type="text" 
+                                        name="displayName"
+                                        className="input input-bordered w-full transition-all duration-200 focus:input-primary"
+                                        value={formData.displayName || ''}
+                                        onChange={handleChange}
                                         placeholder="Your name"
                                     />
                                 </div>
@@ -227,7 +481,9 @@ export default function ProfilePage() {
                                     <label className="label">
                                         <span className="label-text text-base">Email</span>
                                     </label>
-                                    <input type="email" className="input input-bordered w-full opacity-70"
+                                    <input 
+                                        type="email" 
+                                        className="input input-bordered w-full opacity-70"
                                         value={user.email || ''}
                                         readOnly
                                         disabled
@@ -238,18 +494,26 @@ export default function ProfilePage() {
                                     <label className="label">
                                         <span className="label-text text-base">Phone Number</span>
                                     </label>
-                                    <input type="tel" className="input input-bordered w-full transition-all duration-200 focus:input-primary"
-                                        defaultValue={user.phoneNumber || ''}
+                                    <input 
+                                        type="tel" 
+                                        name="phoneNumber"
+                                        className="input input-bordered w-full transition-all duration-200 focus:input-primary"
+                                        value={formData.phoneNumber || ''}
+                                        onChange={handleChange}
                                         placeholder="Your phone number"
                                     />
                                 </div>
 
                                 <div className="form-control w-full">
                                     <label className="label">
-                                        <span className="label-text text-base">Company</span>
+                                        <span className="label-text text-base">Account Created</span>
                                     </label>
-                                    <input type="text" className="input input-bordered w-full transition-all duration-200 focus:input-primary"
-                                        placeholder="Your company name"
+                                    <input 
+                                        type="text" 
+                                        className="input input-bordered w-full opacity-70"
+                                        value={userData.joinDate ? new Date(userData.joinDate.toDate()).toLocaleDateString() : ''}
+                                        readOnly
+                                        disabled
                                     />
                                 </div>
                             </div>
@@ -260,9 +524,306 @@ export default function ProfilePage() {
                                 <label className="label">
                                     <span className="label-text text-base">Bio</span>
                                 </label>
-                                <textarea className="textarea textarea-bordered w-full h-32 transition-all duration-200 focus:textarea-primary"
+                                <textarea 
+                                    name="bio"
+                                    className="textarea textarea-bordered w-full h-32 transition-all duration-200 focus:textarea-primary"
+                                    value={formData.bio || ''}
+                                    onChange={handleChange}
                                     placeholder="Tell us about yourself or your business"
                                 ></textarea>
+                            </div>
+
+                            <div className="mt-8 flex justify-end">
+                                <button 
+                                    className="btn btn-primary rounded-full px-8"
+                                    onClick={() => saveSection('personal')}
+                                    disabled={savingSection === 'personal'}
+                                >
+                                    {savingSection === 'personal' ? (
+                                        <>
+                                            <span className="loading loading-spinner loading-sm"></span>
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FiSave className="mr-2" />
+                                            Save Changes
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Company Tab Content */}
+                    {activeTab === 'company' && (
+                        <div className="bg-base-100 rounded-xl shadow-lg p-8 transition-all duration-200 hover:shadow-xl">
+                            <div className="flex justify-between items-center mb-8">
+                                <h2 className="text-2xl font-bold">Company Information</h2>
+                                <button 
+                                    className="btn btn-sm btn-ghost btn-circle"
+                                    onClick={() => saveSection('company')}
+                                    disabled={savingSection === 'company'}
+                                >
+                                    {savingSection === 'company' ? (
+                                        <span className="loading loading-spinner loading-sm"></span>
+                                    ) : (
+                                        <FiSave className="w-5 h-5" />
+                                    )}
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="form-control w-full">
+                                    <label className="label">
+                                        <span className="label-text text-base flex items-center gap-2">
+                                            <HiOutlineOfficeBuilding className="text-base-content/70" />
+                                            Company Name
+                                        </span>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        className="input input-bordered w-full transition-all duration-200 focus:input-primary"
+                                        value={formData.company?.name || ''}
+                                        onChange={(e) => handleChange(e, 'company', 'name')}
+                                        placeholder="Your company name"
+                                    />
+                                </div>
+
+                                <div className="form-control w-full">
+                                    <label className="label">
+                                        <span className="label-text text-base flex items-center gap-2">
+                                            <HiOutlineGlobe className="text-base-content/70" />
+                                            Website
+                                        </span>
+                                    </label>
+                                    <input 
+                                        type="url" 
+                                        className="input input-bordered w-full transition-all duration-200 focus:input-primary"
+                                        value={formData.company?.website || ''}
+                                        onChange={(e) => handleChange(e, 'company', 'website')}
+                                        placeholder="https://your-company.com"
+                                    />
+                                </div>
+
+                                <div className="form-control w-full">
+                                    <label className="label">
+                                        <span className="label-text text-base flex items-center gap-2">
+                                            <HiOutlineTag className="text-base-content/70" />
+                                            Industry
+                                        </span>
+                                    </label>
+                                    <select 
+                                        className="select select-bordered w-full transition-all duration-200 focus:select-primary"
+                                        value={formData.company?.industry || ''}
+                                        onChange={(e) => handleChange(e, 'company', 'industry')}
+                                    >
+                                        <option value="" disabled>Select an industry</option>
+                                        {INDUSTRIES.map(industry => (
+                                            <option key={industry} value={industry}>{industry}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-control w-full">
+                                    <label className="label">
+                                        <span className="label-text text-base flex items-center gap-2">
+                                            <HiOutlineUserGroup className="text-base-content/70" />
+                                            Company Size
+                                        </span>
+                                    </label>
+                                    <select 
+                                        className="select select-bordered w-full transition-all duration-200 focus:select-primary"
+                                        value={formData.company?.size || ''}
+                                        onChange={(e) => handleChange(e, 'company', 'size')}
+                                    >
+                                        <option value="" disabled>Select company size</option>
+                                        {COMPANY_SIZES.map(size => (
+                                            <option key={size} value={size}>{size}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-control w-full">
+                                    <label className="label">
+                                        <span className="label-text text-base flex items-center gap-2">
+                                            <HiOutlineCalendar className="text-base-content/70" />
+                                            Year Founded
+                                        </span>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        className="input input-bordered w-full transition-all duration-200 focus:input-primary"
+                                        value={formData.company?.founded || ''}
+                                        onChange={(e) => handleChange(e, 'company', 'founded')}
+                                        placeholder="e.g. 2020"
+                                    />
+                                </div>
+
+                                <div className="form-control w-full">
+                                    <label className="label">
+                                        <span className="label-text text-base flex items-center gap-2">
+                                            <HiOutlineLocationMarker className="text-base-content/70" />
+                                            Location
+                                        </span>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        className="input input-bordered w-full transition-all duration-200 focus:input-primary"
+                                        value={formData.company?.location || ''}
+                                        onChange={(e) => handleChange(e, 'company', 'location')}
+                                        placeholder="City, Country"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mt-8 flex justify-end">
+                                <button 
+                                    className="btn btn-primary rounded-full px-8"
+                                    onClick={() => saveSection('company')}
+                                    disabled={savingSection === 'company'}
+                                >
+                                    {savingSection === 'company' ? (
+                                        <>
+                                            <span className="loading loading-spinner loading-sm"></span>
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FiSave className="mr-2" />
+                                            Save Changes
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Business Tab Content */}
+                    {activeTab === 'business' && (
+                        <div className="bg-base-100 rounded-xl shadow-lg p-8 transition-all duration-200 hover:shadow-xl">
+                            <div className="flex justify-between items-center mb-8">
+                                <h2 className="text-2xl font-bold">Business Information</h2>
+                                <button 
+                                    className="btn btn-sm btn-ghost btn-circle"
+                                    onClick={() => saveSection('business')}
+                                    disabled={savingSection === 'business'}
+                                >
+                                    {savingSection === 'business' ? (
+                                        <span className="loading loading-spinner loading-sm"></span>
+                                    ) : (
+                                        <FiSave className="w-5 h-5" />
+                                    )}
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-8">
+                                <div className="form-control w-full">
+                                    <label className="label">
+                                        <span className="label-text text-base flex items-center gap-2">
+                                            <MdOutlineBusinessCenter className="text-base-content/70" />
+                                            Products or Services
+                                        </span>
+                                    </label>
+                                    <textarea 
+                                        className="textarea textarea-bordered w-full transition-all duration-200 focus:textarea-primary"
+                                        value={formData.business?.products?.join(', ') || ''}
+                                        onChange={(e) => {
+                                            const productsArray = e.target.value
+                                                .split(',')
+                                                .map(p => p.trim())
+                                                .filter(p => p);
+                                                
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                business: {
+                                                    ...prev.business,
+                                                    products: productsArray
+                                                }
+                                            }));
+                                        }}
+                                        placeholder="What products or services do you offer? (separate with commas)"
+                                    ></textarea>
+                                </div>
+
+                                <div className="form-control w-full">
+                                    <label className="label">
+                                        <span className="label-text text-base flex items-center gap-2">
+                                            <TbTarget className="text-base-content/70" />
+                                            Target Audience
+                                        </span>
+                                    </label>
+                                    <textarea 
+                                        className="textarea textarea-bordered w-full transition-all duration-200 focus:textarea-primary"
+                                        value={formData.business?.targetAudience || ''}
+                                        onChange={(e) => handleChange(e, 'business', 'targetAudience')}
+                                        placeholder="Describe your ideal customer or target audience"
+                                    ></textarea>
+                                </div>
+
+                                <div className="form-control w-full">
+                                    <label className="label">
+                                        <span className="label-text text-base flex items-center gap-2">
+                                            <BsGraphUp className="text-base-content/70" />
+                                            Marketing Goals
+                                        </span>
+                                        <span className="label-text-alt">Select all that apply</span>
+                                    </label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-4 bg-base-200/30 rounded-lg">
+                                        {GOALS.map(goal => (
+                                            <div key={goal} className="form-control">
+                                                <label className="cursor-pointer label justify-start gap-2 hover:bg-base-200/70 rounded-lg px-2">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="checkbox checkbox-primary checkbox-sm" 
+                                                        checked={formData.business?.goals?.includes(goal) || false}
+                                                        onChange={() => handleGoalToggle(goal)}
+                                                    />
+                                                    <span className="label-text">{goal}</span> 
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="form-control w-full">
+                                    <label className="label">
+                                        <span className="label-text text-base flex items-center gap-2">
+                                            <IoIosTime className="text-base-content/70" />
+                                            Ad Creation Frequency
+                                        </span>
+                                    </label>
+                                    <select 
+                                        className="select select-bordered w-full transition-all duration-200 focus:select-primary"
+                                        value={formData.business?.adFrequency || ''}
+                                        onChange={(e) => handleChange(e, 'business', 'adFrequency')}
+                                    >
+                                        <option value="" disabled>How often do you create ads?</option>
+                                        {AD_FREQUENCIES.map(freq => (
+                                            <option key={freq} value={freq}>{freq}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="mt-8 flex justify-end">
+                                <button 
+                                    className="btn btn-primary rounded-full px-8"
+                                    onClick={() => saveSection('business')}
+                                    disabled={savingSection === 'business'}
+                                >
+                                    {savingSection === 'business' ? (
+                                        <>
+                                            <span className="loading loading-spinner loading-sm"></span>
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FiSave className="mr-2" />
+                                            Save Changes
+                                        </>
+                                    )}
+                                </button>
                             </div>
                         </div>
                     )}
@@ -312,22 +873,16 @@ export default function ProfilePage() {
                                             <p className="text-3xl font-bold">$0<span className="text-base font-normal text-base-content/70">/mo</span></p>
                                             <ul className="my-4 space-y-2">
                                                 <li className="flex items-center">
-                                                    <svg className="w-4 h-4 mr-2 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                                    </svg>
+                                                    <FiCheck className="w-4 h-4 mr-2 text-success" />
                                                     10 Ad Generations
                                                 </li>
                                                 <li className="flex items-center">
-                                                    <svg className="w-4 h-4 mr-2 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                                    </svg>
+                                                    <FiCheck className="w-4 h-4 mr-2 text-success" />
                                                     5 Brainstorm Sessions
                                                 </li>
                                                 <li className="flex items-center text-base-content/50">
-                                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                    Standard Templates
+                                                    <FiX className="w-4 h-4 mr-2" />
+                                                    Standard Templates Only
                                                 </li>
                                             </ul>
                                             <div className="card-actions justify-end">
@@ -343,21 +898,15 @@ export default function ProfilePage() {
                                             <p className="text-3xl font-bold">$29<span className="text-base font-normal text-base-content/70">/mo</span></p>
                                             <ul className="my-4 space-y-2">
                                                 <li className="flex items-center">
-                                                    <svg className="w-4 h-4 mr-2 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                                    </svg>
+                                                    <FiCheck className="w-4 h-4 mr-2 text-success" />
                                                     100 Ad Generations
                                                 </li>
                                                 <li className="flex items-center">
-                                                    <svg className="w-4 h-4 mr-2 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                                    </svg>
+                                                    <FiCheck className="w-4 h-4 mr-2 text-success" />
                                                     Unlimited Brainstorm
                                                 </li>
                                                 <li className="flex items-center">
-                                                    <svg className="w-4 h-4 mr-2 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                                    </svg>
+                                                    <FiCheck className="w-4 h-4 mr-2 text-success" />
                                                     Premium Templates
                                                 </li>
                                             </ul>
@@ -373,21 +922,15 @@ export default function ProfilePage() {
                                             <p className="text-3xl font-bold">$99<span className="text-base font-normal text-base-content/70">/mo</span></p>
                                             <ul className="my-4 space-y-2">
                                                 <li className="flex items-center">
-                                                    <svg className="w-4 h-4 mr-2 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                                    </svg>
+                                                    <FiCheck className="w-4 h-4 mr-2 text-success" />
                                                     Unlimited Ad Generations
                                                 </li>
                                                 <li className="flex items-center">
-                                                    <svg className="w-4 h-4 mr-2 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                                    </svg>
+                                                    <FiCheck className="w-4 h-4 mr-2 text-success" />
                                                     Unlimited Brainstorm
                                                 </li>
                                                 <li className="flex items-center">
-                                                    <svg className="w-4 h-4 mr-2 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                                    </svg>
+                                                    <FiCheck className="w-4 h-4 mr-2 text-success" />
                                                     White Label Exports
                                                 </li>
                                             </ul>
@@ -404,4 +947,4 @@ export default function ProfilePage() {
             </div>
         </div>
     );
-} 
+}

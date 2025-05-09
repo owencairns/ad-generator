@@ -1,6 +1,20 @@
 import { Timestamp } from "firebase/firestore";
 
 export type GenerationStatus = "processing" | "completed" | "error";
+export type TemplateType =
+  | "product-showcase"
+  | "lifestyle"
+  | "clothing-showcase"
+  | "special-offer";
+
+export interface GenerationVersion {
+  createdAt: Timestamp;
+  imageUrl?: string;
+  editDescription?: string;
+  status: GenerationStatus;
+  error?: string;
+  versionId?: string;
+}
 
 export interface GenerationDocument {
   description: string;
@@ -21,6 +35,28 @@ export interface GenerationDocument {
     position: string;
     styleNotes: string;
   };
+  // Template information
+  template?: TemplateType;
+
+  // Lifestyle template specific fields
+  lifestyleDescription?: string;
+  environment?: string;
+  timeOfDay?: string;
+  activityDescription?: string;
+  moodKeywords?: string;
+
+  // Clothing showcase template specific fields
+  clothingType?: string;
+  shotType?: string;
+  viewType?: string;
+
+  // Special offer template specific fields
+  offerDescription?: string;
+  price?: string;
+  discount?: string;
+  
+  // Version tracking
+  versions?: GenerationVersion[];
 }
 
 export interface UploadedImage {
@@ -42,20 +78,54 @@ export interface GenerateApiRequest {
   inspirationImages?: string[]; // base64 encoded images
   userId: string;
   generationId: string;
-  style: string;
-  aspectRatio: string;
+  style?: string;
+  aspectRatio?: string;
   textInfo?: {
     mainText: string;
     secondaryText: string;
     position: string;
     styleNotes: string;
   };
+  // Template information
+  template?: TemplateType;
+
+  // Lifestyle template specific fields
+  lifestyleDescription?: string;
+  environment?: "indoor" | "outdoor" | "both";
+  timeOfDay?: "day" | "night" | "any";
+  activityDescription?: string;
+  moodKeywords?: string;
+
+  // Clothing showcase template specific fields
+  clothingType?: string;
+  shotType?: "closeup" | "full-body";
+  viewType?: "single" | "multiple";
+
+  // Special offer template specific fields
+  offerDescription?: string;
+  price?: string;
+  discount?: string;
+}
+
+export interface EditApiRequest {
+  sourceImageUrl: string; // URL of the image to edit
+  editDescription: string; // User's description of the changes to make
+  previousGenerationId: string; // ID of the original generation being edited
+  userId: string; // User ID
 }
 
 export interface GenerateApiResponse {
   message: string;
   data?: {
     imageUrl?: string;
+    error?: string;
+  };
+}
+
+export interface EditApiResponse {
+  message: string;
+  data?: {
+    generationId?: string;
     error?: string;
   };
 }
