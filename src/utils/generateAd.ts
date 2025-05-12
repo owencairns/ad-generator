@@ -1,47 +1,27 @@
 import { User } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/app/firebase";
 import { useRouter } from "next/navigation";
 import {
   UploadedImage,
   GenerationUIStatus,
   GenerationDocument,
-  GenerateApiRequest,
-  TemplateType,
 } from "@/types/generation";
 
 // Get router type from next/navigation's useRouter return type
 type Router = ReturnType<typeof useRouter>;
+
+// No longer need GenerateImageApiRequest if backend fetches details from Firestore
 
 interface GenerateAdOptions {
   user: User;
   router: Router;
   productImages: UploadedImage[];
   inspirationImages?: UploadedImage[];
-  productName?: string;
-  description?: string;
-  adDescription?: string;
-  style?: string;
-  aspectRatio?: string;
-  template?: TemplateType;
-  textInfo?: {
-    mainText: string;
-    secondaryText: string;
-    position: string;
-    styleNotes: string;
-  };
-  // Template-specific fields
-  environment?: "indoor" | "outdoor" | "both";
-  timeOfDay?: "day" | "night" | "any";
-  lifestyleDescription?: string;
-  activityDescription?: string;
-  moodKeywords?: string;
-  clothingType?: string;
-  shotType?: "closeup" | "full-body";
-  viewType?: "single" | "multiple";
-  offerDescription?: string;
-  price?: string;
-  discount?: string;
+  size?: string;
+  template?: string;
+  prompt: string;
+  // State setters
   setIsGenerating: (isGenerating: boolean) => void;
   setGenerationStatus: (status: GenerationUIStatus | null) => void;
   setCurrentGenerationId?: (id: string | null) => void;
@@ -60,30 +40,11 @@ export const generateAd = async (
     router,
     productImages,
     inspirationImages = [],
-    productName = "",
-    description = "",
-    adDescription = "",
-    style = "",
-    aspectRatio = "1:1",
+    // --- Use simplified prompt fields ---
+    prompt,
     template,
-    textInfo = {
-      mainText: "",
-      secondaryText: "",
-      position: "",
-      styleNotes: "",
-    },
-    // Template-specific options
-    environment,
-    timeOfDay,
-    lifestyleDescription,
-    activityDescription,
-    moodKeywords,
-    clothingType,
-    shotType,
-    viewType,
-    offerDescription,
-    price,
-    discount,
+    size = "1024x1024",
+
     // State setters
     setIsGenerating,
     setGenerationStatus,
@@ -95,129 +56,158 @@ export const generateAd = async (
   if (!user) {
     throw new Error("User is required");
   }
-
   if (productImages.length === 0) {
     throw new Error("At least one product image is required");
   }
+  if (!prompt) {
+    throw new Error("Prompt is required");
+  }
 
-  // Generate a new generation ID
   const newGenerationId = Date.now().toString();
   console.log(`Starting generation with ID: ${newGenerationId}`);
 
+  // Initial state updates
+  setIsGenerating(true);
+  setGenerationStatus(null);
+  if (setCurrentGenerationId) {
+    setCurrentGenerationId(newGenerationId);
+  }
+  setGlobalGenerationId(newGenerationId);
+
+  // --- Start Firestore Listener EARLY ---
+  const unsubscribe = setupFirestoreSubscription({
+    userId: user.uid,
+    generationId: newGenerationId,
+    router,
+    setIsGenerating,
+    setGenerationStatus,
+    setGlobalGenerationId,
+  });
+
   try {
-    // Update local state
-    setIsGenerating(true);
-    setGenerationStatus(null);
-    // Only update currentGenerationId if the setter is provided
-    if (setCurrentGenerationId) {
-      setCurrentGenerationId(newGenerationId);
-    }
+    // --- 1. Upload Images via Next.js API Route ---
+    console.log(`[generateAd] Uploading images for ${newGenerationId}...`);
+    const formData = new FormData();
+    formData.append("userId", user.uid);
+    formData.append("generationId", newGenerationId);
+    productImages.forEach((img) => formData.append("productImages", img.file));
+    inspirationImages.forEach((img) =>
+      formData.append("inspirationImages", img.file)
+    );
 
-    // Update global state for notification
-    setGlobalGenerationId(newGenerationId);
-
-    // Set up Firestore subscription for this generation
-    setupFirestoreSubscription({
-      userId: user.uid,
-      generationId: newGenerationId,
-      router,
-      setIsGenerating,
-      setGenerationStatus,
-      setGlobalGenerationId,
+    const uploadResponse = await fetch("/api/upload-images", {
+      method: "POST",
+      body: formData,
     });
 
-    // Convert images to base64
-    const productImagesBase64 = await Promise.all(
-      productImages.map(async (img) => {
-        const buffer = await img.file.arrayBuffer();
-        const base64 = Buffer.from(buffer).toString("base64");
-        return `data:${img.file.type};base64,${base64}`;
-      })
-    );
-
-    const inspirationImagesBase64 = await Promise.all(
-      inspirationImages.map(async (img) => {
-        const buffer = await img.file.arrayBuffer();
-        const base64 = Buffer.from(buffer).toString("base64");
-        return `data:${img.file.type};base64,${base64}`;
-      })
-    );
-
-    // Build request data
-    const requestData: Partial<GenerateApiRequest> = {
-      productImages: productImagesBase64,
-      inspirationImages:
-        inspirationImagesBase64.length > 0 ? inspirationImagesBase64 : [],
-      productDescription: description.trim(),
-      description:
-        adDescription.trim() || "Create a compelling ad for the product.",
-      productName: productName.trim(),
-      userId: user.uid,
-      generationId: newGenerationId,
-      style,
-      aspectRatio,
-      textInfo,
-    };
-
-    // Add template-specific fields if provided
-    if (template) {
-      requestData.template = template;
+    if (!uploadResponse.ok) {
+      const errorData = await uploadResponse.json();
+      throw new Error(
+        `Image upload failed: ${errorData.message || uploadResponse.statusText}`
+      );
     }
 
-    if (environment) requestData.environment = environment;
-    if (timeOfDay) requestData.timeOfDay = timeOfDay;
-    if (lifestyleDescription)
-      requestData.lifestyleDescription = lifestyleDescription;
-    if (activityDescription)
-      requestData.activityDescription = activityDescription;
-    if (moodKeywords) requestData.moodKeywords = moodKeywords;
-    if (clothingType) requestData.clothingType = clothingType;
-    if (shotType) requestData.shotType = shotType;
-    if (viewType) requestData.viewType = viewType;
-    if (offerDescription) requestData.offerDescription = offerDescription;
-    if (price) requestData.price = price;
-    if (discount) requestData.discount = discount;
+    const { productImageUrls, inspirationImageUrls } =
+      await uploadResponse.json();
+    console.log(`[generateAd] Images uploaded for ${newGenerationId}:`, {
+      productImageUrls,
+      inspirationImageUrls,
+    });
 
-    // Make API request
-    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-    const response = await fetch(`${apiUrl}/api/generate`, {
+    // --- 2. Create Initial Firestore Document ---
+    console.log(
+      `[generateAd] Creating Firestore doc for ${newGenerationId}...`
+    );
+    const generationRef = doc(
+      db,
+      "generations",
+      user.uid,
+      "items",
+      newGenerationId
+    );
+
+    // Simplified initial data based on the new options
+    const initialDocData: Partial<GenerationDocument> = {
+      status: "processing",
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+      prompt: prompt, // Store the main prompt
+      productImageUrls: productImageUrls,
+      inspirationImageUrls: inspirationImageUrls?.length
+        ? inspirationImageUrls
+        : undefined,
+      template: template || undefined, // Store template identifier
+      size: size || undefined, // Renamed from aspectRatio
+    };
+
+    // Revert to using 'any' for the accumulator assignment to bypass complex type error
+    const cleanedData = Object.entries(initialDocData).reduce(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (acc as any)[key] = value; // Reverted casting
+        }
+        return acc;
+      },
+      {} as Partial<GenerationDocument>
+    );
+
+    await setDoc(generationRef, cleanedData);
+    console.log(`[generateAd] Firestore doc created for ${newGenerationId}`);
+
+    // --- 3. Call Refactored Backend Endpoint ---
+    console.log(`[generateAd] Calling backend for ${newGenerationId}...`);
+    const backendApiUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    const backendRequestData = {
+      // Payload remains simple
+      userId: user.uid,
+      generationId: newGenerationId,
+    };
+
+    const backendResponse = await fetch(`${backendApiUrl}/api/generate-image`, {
+      // Correct endpoint
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(requestData),
+      body: JSON.stringify(backendRequestData),
     });
 
-    const responseData = await response.json();
+    const backendResponseData = await backendResponse.json();
 
-    if (!response.ok) {
+    if (!backendResponse.ok) {
       throw new Error(
-        responseData.message ||
-          responseData.data?.error ||
-          "Failed to start generation"
+        `Backend generation request failed: ${
+          backendResponseData.message || "Unknown error"
+        }`
       );
     }
 
-    console.log("Generation started successfully:", newGenerationId);
+    console.log(
+      `[generateAd] Backend processing initiated for ${newGenerationId}`
+    );
 
-    // Immediately redirect to gallery after successful API response
+    // --- 4. Redirect ---
     router.push("/gallery");
 
     return newGenerationId;
   } catch (error) {
-    console.error("Error starting generation:", error);
+    console.error("[generateAd] Error during generation process:", error);
+
     setIsGenerating(false);
-    // Only update currentGenerationId if the setter is provided
     if (setCurrentGenerationId) {
       setCurrentGenerationId(null);
     }
-    // Clear the global generation ID on error
     setGlobalGenerationId(null);
     setGenerationStatus({
       status: "error",
       error:
         error instanceof Error ? error.message : "An unknown error occurred",
     });
+
+    if (unsubscribe) {
+      unsubscribe();
+    }
     return null;
   }
 };
@@ -228,7 +218,7 @@ export const generateAd = async (
 interface SubscriptionOptions {
   userId: string;
   generationId: string;
-  router: Router; // Keeping for backward compatibility
+  router: Router;
   setIsGenerating: (isGenerating: boolean) => void;
   setGenerationStatus: (status: GenerationUIStatus | null) => void;
   setGlobalGenerationId: (id: string | null) => void;
@@ -248,7 +238,6 @@ export const setupFirestoreSubscription = (
 
   const generationRef = doc(db, "generations", userId, "items", generationId);
 
-  // Subscribe to Firestore updates
   const unsubscribe = onSnapshot(
     generationRef,
     (docSnapshot) => {
@@ -263,9 +252,6 @@ export const setupFirestoreSubscription = (
             status: "completed",
             imageUrl: data.generatedImageUrl,
           });
-
-          // Don't redirect here as we're already redirecting after API response
-          // Keep the global generation ID active so notification can still show on gallery page
         } else if (data.status === "error") {
           console.log("Generation failed with error:", data.error);
           setGenerationStatus({
@@ -273,9 +259,10 @@ export const setupFirestoreSubscription = (
             error: data.error,
           });
           setIsGenerating(false);
-          // Clear the global generation ID on error
           setGlobalGenerationId(null);
         }
+        // If status is 'processing', we typically don't do anything here,
+        // as the UI is already in a generating state.
       }
     },
     (error) => {

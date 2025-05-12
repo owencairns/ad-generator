@@ -1,11 +1,6 @@
 import { Timestamp } from "firebase/firestore";
 
 export type GenerationStatus = "processing" | "completed" | "error";
-export type TemplateType =
-  | "product-showcase"
-  | "lifestyle"
-  | "clothing-showcase"
-  | "special-offer";
 
 export interface GenerationVersion {
   createdAt: Timestamp;
@@ -27,34 +22,10 @@ export interface GenerationDocument {
   error?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  style?: string;
-  aspectRatio?: string;
-  textInfo?: {
-    mainText: string;
-    secondaryText: string;
-    position: string;
-    styleNotes: string;
-  };
-  // Template information
-  template?: TemplateType;
+  prompt: string;
+  template: string;
+  size?: string;
 
-  // Lifestyle template specific fields
-  lifestyleDescription?: string;
-  environment?: string;
-  timeOfDay?: string;
-  activityDescription?: string;
-  moodKeywords?: string;
-
-  // Clothing showcase template specific fields
-  clothingType?: string;
-  shotType?: string;
-  viewType?: string;
-
-  // Special offer template specific fields
-  offerDescription?: string;
-  price?: string;
-  discount?: string;
-  
   // Version tracking
   versions?: GenerationVersion[];
 }
@@ -86,9 +57,8 @@ export interface GenerateApiRequest {
     position: string;
     styleNotes: string;
   };
-  // Template information
-  template?: TemplateType;
 
+  template: string;
   // Lifestyle template specific fields
   lifestyleDescription?: string;
   environment?: "indoor" | "outdoor" | "both";

@@ -1,648 +1,352 @@
 import { Router, RequestHandler } from "express";
 import { storage, db } from "../config/firebase";
-import sharp from "sharp";
 import {
   GenerateRequestBody,
-  GenerateResponseData,
   FirestoreGenerationDocument,
-  ProcessedImage,
-  GenerationStatus,
-  TemplateType,
-} from "../types";
+  GenerationVersion,
+} from "../types/generationTypes";
 import { Timestamp } from "firebase-admin/firestore";
-import { OpenAI } from "openai";
+import OpenAI from "openai";
 import { File } from "node:buffer";
+import axios from "axios";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Instantiate OpenAI client correctly
+const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const router = Router();
 
-const compressAndUploadImage = async (
-  base64Image: string,
-  userId: string,
-  generationId: string,
-  type: ProcessedImage["type"],
-  index: number
-): Promise<string> => {
-  console.log(
-    `[Storage] Processing ${type} image ${index + 1} for user ${userId}`
-  );
-  try {
-    // Extract base64 data
-    const matches = base64Image.match(/^data:([^;]+);base64,(.+)$/);
-    if (!matches) throw new Error("Invalid image format");
-    const base64Data = matches[2];
-
-    // Convert base64 to buffer
-    const imageBuffer = Buffer.from(base64Data, "base64");
-
-    // Compress image
-    const compressedBuffer = await sharp(imageBuffer)
-      .resize(1024, 1024, { fit: "inside" })
-      .jpeg({ quality: 80 })
-      .toBuffer();
-
-    // Upload to Firebase Storage
-    const fileName = `generatedImages/${userId}/${generationId}/${type}-${
-      index + 1
-    }.jpg`;
-    const bucket = storage.bucket();
-    const file = bucket.file(fileName);
-
-    await file.save(compressedBuffer, {
-      metadata: {
-        contentType: "image/jpeg",
-      },
-    });
-
-    await file.makePublic();
-    return file.publicUrl();
-  } catch (error) {
-    console.error(`[Storage] Error processing ${type} image:`, error);
-    throw error;
-  }
-};
-
+// Keep uploadToStorage for the FINAL generated image
 const uploadToStorage = async (
   imageBuffer: Buffer,
   userId: string,
   generationId: string
 ): Promise<string> => {
   console.log(
-    `[Storage] Starting upload for generated image for user ${userId}`
+    `[Storage] Starting upload for generated image for user ${userId}, genId ${generationId}`
   );
   try {
     const fileName = `generatedImages/${userId}/${generationId}/final-1.png`;
-    console.log(`[Storage] Uploading to path: ${fileName}`);
     const bucket = storage.bucket();
     const file = bucket.file(fileName);
-
     await file.save(imageBuffer, {
-      metadata: {
-        contentType: "image/png",
-      },
+      metadata: { contentType: "image/png" },
     });
-
     await file.makePublic();
-    return file.publicUrl();
+    const publicUrl = file.publicUrl();
+    console.log(`[Storage] Upload complete: ${publicUrl}`);
+    return publicUrl;
   } catch (error) {
     console.error("[Storage] Error uploading to storage:", error);
     throw error;
   }
 };
 
-// Helper function to recursively clean undefined values from objects
-const cleanUndefinedValues = (
-  obj: Partial<FirestoreGenerationDocument>
-): Partial<FirestoreGenerationDocument> => {
-  if (!obj || typeof obj !== "object") {
-    return {};
+// Helper to fetch an image URL and return a Buffer
+async function fetchImageAsBuffer(imageUrl: string): Promise<Buffer> {
+  try {
+    const response = await axios.get(imageUrl, { responseType: "arraybuffer" });
+    if (!Buffer.isBuffer(response.data)) {
+      throw new Error(`Invalid response data type for ${imageUrl}`);
+    }
+    return response.data;
+  } catch (error) {
+    console.error(`Failed to fetch image ${imageUrl}:`, error);
+    throw new Error(`Failed to fetch image: ${imageUrl}`);
   }
+}
+// Integrated Enhance Prompt Logic (from newGenerate.ts)
+const enhancePromptWithGPT = async (prompt: string): Promise<string | null> => {
+  try {
+    console.log("[Enhance] Enhancing prompt with gpt-4o-mini...");
+    const result = await openaiClient.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are a helpful assistant that enhances prompts for image generation.
+          Give the following prompt for generating an image for a product, turn the prompt into a complex and detailed json object which expertly explains the image that the user is trying to generate.
+          You can create any number of keys and values you want in the json object. Make it as detailed as possible.
 
-  return Object.entries(obj).reduce((acc, [key, value]) => {
-    if (value === null || value === undefined) {
-      return acc;
+          Values can be sub-objects to categorize the image generation details. Make sure to include all of the details given and others that you may think are helpful.
+          
+          Return the json object as a string in the following format:
+          {
+            "key1": "value1",
+            "key2": "value2",
+            "key3": "value3",
+          }`,
+        },
+        { role: "user", content: prompt },
+      ],
+    });
+    const enhancedContent = result.choices[0]?.message?.content;
+    if (!enhancedContent) {
+      console.warn("[Enhance] GPT returned no content for prompt enhancement.");
+      return prompt; // Return original prompt if enhancement fails
     }
-
-    if (Array.isArray(value)) {
-      const cleanedArray = value.filter(
-        (item) => item !== null && item !== undefined
-      );
-      if (cleanedArray.length > 0) {
-        (acc as any)[key] = cleanedArray;
-      }
-      return acc;
-    }
-
-    if (typeof value === "object") {
-      const cleanedObj = cleanUndefinedValues(
-        value as Partial<FirestoreGenerationDocument>
-      );
-      if (Object.keys(cleanedObj).length > 0) {
-        (acc as any)[key] = cleanedObj;
-      }
-      return acc;
-    }
-
-    (acc as any)[key] = value;
-    return acc;
-  }, {} as Partial<FirestoreGenerationDocument>);
+    console.log("[Enhance] Prompt enhancement successful.");
+    return enhancedContent;
+  } catch (error) {
+    console.error("[Enhance] Error enhancing prompt:", error);
+    return prompt; // Fallback to original prompt on error
+  }
 };
 
-// Modified the function signature to accept Partial<FirestoreGenerationDocument>
-const createFirestoreDocument = async (
-  userId: string,
-  generationId: string,
-  data: Partial<
-    Omit<FirestoreGenerationDocument, "status" | "createdAt" | "updatedAt">
-  >
-) => {
+const handleGenerateRequest: RequestHandler = async (req, res) => {
+  console.log("[Generate] Received trigger for generation process");
+  const { userId, generationId } = req.body as GenerateRequestBody;
+
+  // --- 1. Validation ---
+  if (!userId || !generationId) {
+    console.warn("[Generate] Missing user ID or generation ID");
+    return res
+      .status(400)
+      .json({ message: "User ID and Generation ID are required" });
+  }
+  console.log(`[Generate] User: ${userId}, Generation: ${generationId}`);
+
   const docRef = db
     .collection("generations")
     .doc(userId)
     .collection("items")
     .doc(generationId);
 
-  const now = Timestamp.now();
-
-  // Clean undefined values before saving to Firestore
-  const cleanedData = cleanUndefinedValues(data);
-
-  // Make sure required fields are present
-  if (!cleanedData.description || !cleanedData.productDescription) {
-    throw new Error(
-      "Required fields missing: description and productDescription are required"
-    );
-  }
-
-  // Ensure productImageUrls is an array
-  const productImageUrls = Array.isArray(cleanedData.productImageUrls)
-    ? cleanedData.productImageUrls
-    : [];
-
-  // Create a base document with required fields
-  const docData: FirestoreGenerationDocument = {
-    description: cleanedData.description as string,
-    productDescription: cleanedData.productDescription as string,
-    productImageUrls: productImageUrls as string[],
-    status: "processing",
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  // Add optional fields if they exist
-  if (cleanedData.productName)
-    docData.productName = cleanedData.productName as string;
-  if (cleanedData.inspirationImageUrls)
-    docData.inspirationImageUrls = cleanedData.inspirationImageUrls as string[];
-  if (cleanedData.style) docData.style = cleanedData.style as string;
-  if (cleanedData.aspectRatio)
-    docData.aspectRatio = cleanedData.aspectRatio as string;
-  if (cleanedData.template)
-    docData.template = cleanedData.template as TemplateType;
-  if (cleanedData.textInfo)
-    docData.textInfo =
-      cleanedData.textInfo as FirestoreGenerationDocument["textInfo"];
-
-  // Add template-specific fields
-  if (cleanedData.lifestyleDescription)
-    docData.lifestyleDescription = cleanedData.lifestyleDescription as string;
-  if (cleanedData.environment)
-    docData.environment = cleanedData.environment as string;
-  if (cleanedData.timeOfDay)
-    docData.timeOfDay = cleanedData.timeOfDay as string;
-  if (cleanedData.activityDescription)
-    docData.activityDescription = cleanedData.activityDescription as string;
-  if (cleanedData.moodKeywords)
-    docData.moodKeywords = cleanedData.moodKeywords as string;
-  if (cleanedData.clothingType)
-    docData.clothingType = cleanedData.clothingType as string;
-  if (cleanedData.shotType) docData.shotType = cleanedData.shotType as string;
-  if (cleanedData.viewType) docData.viewType = cleanedData.viewType as string;
-  if (cleanedData.offerDescription)
-    docData.offerDescription = cleanedData.offerDescription as string;
-  if (cleanedData.price) docData.price = cleanedData.price as string;
-  if (cleanedData.discount) docData.discount = cleanedData.discount as string;
-
-  await docRef.set(docData);
-  return docRef;
-};
-
-function base64ToBuffer(base64Image: string): Buffer {
-  const matches = base64Image.match(/^data:([^;]+);base64,(.+)$/);
-  if (!matches) throw new Error("Invalid image format");
-  return Buffer.from(matches[2], "base64");
-}
-
-const handleGenerateRequest: RequestHandler = async (req, res) => {
-  console.log("[Generate] Received new generation request");
   try {
+    // --- 2. Fetch Firestore Document ---
+    console.log(`[Generate] Fetching Firestore document: ${docRef.path}`);
+    const docSnapshot = await docRef.get();
+    if (!docSnapshot.exists) {
+      console.error(`[Generate] Firestore document not found: ${docRef.path}`);
+      return res.status(404).json({ message: "Generation record not found" });
+    }
+    const generationData = docSnapshot.data() as FirestoreGenerationDocument;
+    console.log("[Generate] Fetched Firestore document.");
+
+    // --- 3. Extract Essential Data ---
     const {
-      description,
-      productDescription,
-      inspirationImages = [],
-      productImages,
-      userId,
-      generationId,
-      style,
-      aspectRatio,
-      textInfo,
-      template,
-      // Lifestyle template fields
-      lifestyleDescription,
-      environment,
-      timeOfDay,
-      activityDescription,
-      moodKeywords,
-      // Clothing showcase fields
-      clothingType,
-      shotType,
-      viewType,
-      // Special offer fields
-      offerDescription,
-      price,
-      discount,
-    } = req.body as GenerateRequestBody;
-
-    // --- TEMPLATE-SPECIFIC LOGIC ---
-    let finalDescription = description;
-    let finalProductDescription = productDescription;
-    let finalStyle = style || "";
-    let finalAspectRatio = aspectRatio || "1:1";
-    let finalTextInfo = textInfo;
-    let finalInspirationImages = inspirationImages;
-    let firestoreData: Partial<FirestoreGenerationDocument> = {};
-
-    if (template === "product-showcase") {
-      // Product Showcase Template
-      finalDescription =
-        description ||
-        "Create a clean, professional product showcase advertisement that highlights the product clearly and attractively.";
-      finalProductDescription =
-        productDescription ||
-        "Showcase the product with a focus on clarity, lighting, and minimal distractions.";
-      finalStyle =
-        style ||
-        "Minimal, clean background, professional lighting, product-centric composition, e-commerce ready.";
-      finalAspectRatio = aspectRatio || "1:1";
-      finalTextInfo = undefined; // No extra text by default
-      finalInspirationImages = [];
-    } else if (template === "lifestyle") {
-      // Lifestyle Template
-      if (!lifestyleDescription || !activityDescription) {
-        console.warn(
-          "[Generate] Missing lifestyle description or activity description"
-        );
-        res.status(400).json({
-          message:
-            "Lifestyle description and activity description are required",
-        } as GenerateResponseData);
-        return;
-      }
-
-      finalDescription = `Create a lifestyle advertisement that shows the product in use in a ${
-        environment || "versatile"
-      } environment during ${timeOfDay || "daytime"}.`;
-
-      if (moodKeywords) {
-        finalDescription += ` The mood should be: ${moodKeywords}.`;
-      }
-
-      finalProductDescription = `${productDescription}\n\nLifestyle Context: ${lifestyleDescription}\n\nActivity/Scene: ${activityDescription}`;
-      finalStyle =
-        style ||
-        "Natural, authentic, lifestyle photography with realistic lighting";
-      finalAspectRatio = aspectRatio || "4:5";
-
-      // Store lifestyle specific fields
-      firestoreData = {
-        lifestyleDescription,
-        environment,
-        timeOfDay,
-        activityDescription,
-        moodKeywords,
-      };
-    } else if (template === "clothing-showcase") {
-      // Clothing Showcase Template
-      if (!clothingType) {
-        console.warn("[Generate] Missing clothing type description");
-        res.status(400).json({
-          message: "Clothing type description is required",
-        } as GenerateResponseData);
-        return;
-      }
-
-      const viewTypeText =
-        viewType === "multiple"
-          ? "showing multiple angles (front and back)"
-          : "from a single clear angle";
-      const shotTypeText =
-        shotType === "closeup"
-          ? "with close-up details of textures and features"
-          : "full-body to show the complete look";
-
-      finalDescription = `Create a professional clothing showcase for ${clothingType} ${viewTypeText} ${shotTypeText}.`;
-      finalProductDescription = `${productDescription}\n\nClothing details: ${clothingType}`;
-      finalStyle =
-        style ||
-        "Clean, professional fashion photography style with neutral background";
-      finalAspectRatio = aspectRatio || "4:5";
-
-      // Store clothing specific fields
-      firestoreData = {
-        clothingType,
-        shotType,
-        viewType,
-      };
-    } else if (template === "special-offer") {
-      // Special Offer Template
-      if (!offerDescription) {
-        console.warn("[Generate] Missing offer description");
-        res.status(400).json({
-          message: "Offer description is required",
-        } as GenerateResponseData);
-        return;
-      }
-
-      finalDescription = `Create an attention-grabbing special offer advertisement highlighting: ${offerDescription}`;
-
-      if (price) {
-        finalDescription += ` with price: ${price}`;
-      }
-
-      if (discount) {
-        finalDescription += ` featuring discount: ${discount}`;
-      }
-
-      finalProductDescription = productDescription;
-      finalStyle =
-        style || "Bold, promotional, high-contrast, with focus on the offer";
-      finalAspectRatio = aspectRatio || "1:1";
-
-      // Include price as text in the image
-      let offerText = offerDescription;
-      if (price) offerText += ` - ${price}`;
-      if (discount) offerText += ` - ${discount}`;
-
-      finalTextInfo = {
-        mainText: offerText,
-        secondaryText: `Limited Time Offer`,
-        position: "auto",
-        styleNotes: "Bold, promotional text that stands out",
-      };
-
-      // Store special offer specific fields
-      firestoreData = {
-        offerDescription,
-        price,
-        discount,
-      };
-    }
-
-    // Validate request (use final* variables)
-    if (!userId || !generationId) {
-      console.warn("[Generate] Missing user ID or generation ID in request");
-      res.status(400).json({
-        message: "User ID and Generation ID are required",
-      } as GenerateResponseData);
-      return;
-    }
-
-    if (
-      !productImages ||
-      productImages.length === 0 ||
-      productImages.length > 2
-    ) {
-      console.warn(
-        `[Generate] Invalid product images count: ${productImages?.length}`
-      );
-      res.status(400).json({
-        message: "Between 1 and 2 product images are required",
-      } as GenerateResponseData);
-      return;
-    }
-
-    if (finalInspirationImages && finalInspirationImages.length > 2) {
-      console.warn(
-        `[Generate] Too many inspiration images: ${finalInspirationImages.length}`
-      );
-      res.status(400).json({
-        message: "Maximum of 2 inspiration images allowed",
-      } as GenerateResponseData);
-      return;
-    }
-
-    if (!finalDescription || !finalProductDescription) {
-      console.warn(
-        "[Generate] Missing description or product description in request"
-      );
-      res.status(400).json({
-        message: "Both ad description and product description are required",
-      } as GenerateResponseData);
-      return;
-    }
-
-    // Process and upload images concurrently
-    console.log("[Generate] Starting image processing and upload");
-    const [productImageUrls, inspirationImageUrls] = await Promise.all([
-      Promise.all(
-        productImages.map((img, idx) =>
-          compressAndUploadImage(img, userId, generationId, "product", idx)
-        )
-      ),
-      Promise.all(
-        finalInspirationImages.map((img, idx) =>
-          compressAndUploadImage(img, userId, generationId, "inspiration", idx)
-        )
-      ),
-    ]);
-
-    // Ensure required fields have default values if not provided
-    const finalDescriptionValue = finalDescription || "Product Advertisement";
-    const finalProductDescriptionValue =
-      finalProductDescription || "Product advertisement description";
-
-    // Create Firestore document
-    const firestoreDataToSave: Partial<FirestoreGenerationDocument> = {
-      description: finalDescriptionValue,
-      productDescription: finalProductDescriptionValue,
-      productName: req.body.productName,
+      prompt, // This prompt now contains all details
       productImageUrls,
-      ...(inspirationImageUrls.length > 0 ? { inspirationImageUrls } : {}),
-      style: finalStyle || "",
-      aspectRatio: finalAspectRatio || "1:1",
-      textInfo: finalTextInfo,
-      // Save template type if specified
-      template,
-      // Include any template-specific data
-      ...firestoreData,
-    };
+      inspirationImageUrls = [],
+      size = "1024x1024", // Keep size if needed for API
+      // REMOVED: template, style, productDescription, textElements etc. - assumed in prompt
+    } = generationData;
 
-    const docRef = await createFirestoreDocument(
-      userId,
-      generationId,
-      firestoreDataToSave
-    );
-
-    // Prepare prompt with template-specific guidance
-    let systemMessage = `You are an AI specialized in generating creative and effective product advertisements. Your goal is to create visually appealing advertisements that showcase products clearly while maintaining engaging and professional design standards.`;
-
-    // Add template-specific system message
-    if (template) {
-      systemMessage += `\n\nYou are generating a ${template.replace(
-        "-",
-        " "
-      )} advertisement. `;
-
-      if (template === "product-showcase") {
-        systemMessage += `Focus on showcasing the product clearly with professional lighting and a clean background. The product should be the focal point of the image.`;
-      } else if (template === "lifestyle") {
-        systemMessage += `Create a natural, authentic scene showing the product being used in a real-life context. The scene should feel realistic and relatable.`;
-      } else if (template === "clothing-showcase") {
-        systemMessage += `Create a professional fashion photography style advertisement that showcases the clothing item clearly and attractively.`;
-      } else if (template === "special-offer") {
-        systemMessage += `Create an eye-catching promotional advertisement that highlights the special offer. Use bold, attention-grabbing design elements.`;
-      }
+    // --- 4. Validate Essential Fetched Data ---
+    if (!prompt) throw new Error("Missing 'prompt' in Firestore document");
+    if (!productImageUrls || productImageUrls.length === 0) {
+      throw new Error("Missing 'productImageUrls' in Firestore document");
     }
 
-    const productImagesPrompt = `This is what the product looks like - make sure to maintain a clear and prominent view of the product in the generated advertisement. The product should be the focal point while incorporating it into an attractive advertisement design. NEVER CHANGE WHAT THE PRODUCT LOOKS LIKE UNLESS SPECIFIED.\n\nProduct Description:\n${finalProductDescription}`;
-
-    const inspirationPrompt =
-      finalInspirationImages.length > 0
-        ? `These additional images are for inspiration. Draw inspiration from their design style, composition, and aesthetic while creating the advertisement for our product. NEVER INCLUDE ANY TEXT FROM THESE IMAGES. GET RID OF WATERMARKS.`
-        : "";
-
-    const prompt = `${systemMessage}
-
-${productImagesPrompt}
-
-${inspirationPrompt}
-
-Advertisement Requirements:
-${finalDescription}
-
-Style Requirements:
-${finalStyle}
-
-Aspect Ratio:
-${finalAspectRatio}
-
-$${
-      !finalTextInfo ||
-      (!finalTextInfo.mainText && !finalTextInfo.secondaryText)
-        ? "\nText Requirements:\n- There should be no text in the image other than what is on the product"
-        : `\nText Requirements:\n$${
-            finalTextInfo.mainText
-              ? `- Heading: \"$${finalTextInfo.mainText}\"`
-              : "- No heading specified"
-          }
-$${
-            finalTextInfo.secondaryText
-              ? `- Subheading: \"$${finalTextInfo.secondaryText}\"`
-              : "- No subheading specified"
-          }
-$${
-            finalTextInfo.position === "auto"
-              ? "- Text Placement: Choose the best placement for the text"
-              : finalTextInfo.styleNotes
-              ? `- Text Placement: $${finalTextInfo.styleNotes}`
-              : "- Text Placement: Choose the best placement for the text"
-          }
-`
-    }
-
-Important Guidelines:
-- Ensure the product is clearly visible and recognizable
-- Create a professional and polished advertisement
-- Maintain high visual quality and appeal
-- Follow the specified style requirements exactly
-$${
-      finalTextInfo && (finalTextInfo.mainText || finalTextInfo.secondaryText)
-        ? "- Include the specified text exactly as provided"
-        : ""
-    }
-- The generated image should be a complete advertisement`;
-
-    // Prepare image file for OpenAI (only the first product image as base image)
-    let openaiImageFile: File;
+    // --- 5. Fetch Image Buffers ---
+    console.log("[Generate] Fetching image buffers from URLs...");
+    let productImageBuffers: Buffer[];
+    let inspirationImageBuffers: Buffer[];
     try {
-      if (!productImages[0]) {
-        throw new Error(
-          "No product image provided for OpenAI image edit endpoint"
-        );
-      }
-      const buffer = base64ToBuffer(productImages[0]);
-      openaiImageFile = new File([buffer], "product.png", {
-        type: "image/png",
-      });
-    } catch (error) {
-      console.error("[Generate] Failed to process image for OpenAI:", error);
+      productImageBuffers = await Promise.all(
+        productImageUrls.map((url) => fetchImageAsBuffer(url))
+      );
+      inspirationImageBuffers = await Promise.all(
+        inspirationImageUrls.map((url) => fetchImageAsBuffer(url))
+      );
+      console.log(
+        `[Generate] Fetched ${productImageBuffers.length} product image(s) and ${inspirationImageBuffers.length} inspiration image(s).`
+      );
+    } catch (fetchError) {
+      console.error("[Generate] Failed to fetch image buffers:", fetchError);
       await docRef.update({
-        status: "error" as GenerationStatus,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to process image for OpenAI",
+        status: "error",
+        error: `Failed to fetch image buffers: ${
+          (fetchError as Error).message
+        }`,
         updatedAt: Timestamp.now(),
       });
-      throw error;
+      return res.status(500).json({
+        message: "Failed to fetch necessary image resources.",
+        data: { error: (fetchError as Error).message },
+      });
     }
 
-    // Call OpenAI image edit endpoint
-    let imageBuffer: Buffer | null = null;
+    // --- 6. Enhance Prompt ---
+    const initialPrompt = prompt; // Keep original for potential saving
+    const enhancedPromptResult = await enhancePromptWithGPT(initialPrompt);
+    // Use enhanced prompt, or fallback to original if enhancement failed
+    const finalPromptForOpenAI = enhancedPromptResult || initialPrompt;
+
+    // --- 7. Prepare Images for OpenAI ---
+    console.log("[Generate] Preparing image Files for OpenAI...");
+    const allImageFiles: File[] = [];
+    productImageBuffers.forEach((buffer, index) => {
+      allImageFiles.push(
+        new File([buffer], `product_image_${index}.png`, { type: "image/png" })
+      );
+    });
+    inspirationImageBuffers.forEach((buffer, index) => {
+      allImageFiles.push(
+        new File([buffer], `inspiration_image_${index}.png`, {
+          type: "image/png",
+        })
+      );
+    });
+    console.log(
+      `[Generate] Prepared ${allImageFiles.length} total image File(s).`
+    );
+
+    // Add note about extra images to prompt if applicable (as in newGenerate.ts)
+    let finalPromptWithImageNotes = finalPromptForOpenAI;
+    if (productImageBuffers.length > 1) {
+      finalPromptWithImageNotes += ` (Note: ${
+        productImageBuffers.length - 1
+      } additional product images provided)`;
+    }
+    if (inspirationImageBuffers.length > 0) {
+      finalPromptWithImageNotes += ` (Note: ${inspirationImageBuffers.length} inspiration images provided)`;
+    }
+
+    // --- 8. Call OpenAI API (using images.edit logic) ---
+    console.log("[Generate] Calling OpenAI images.edit API...");
+    let generatedImageBuffer: Buffer | null = null;
+    const revisedPromptFromOpenAI: string | undefined = undefined;
+
     try {
-      const result = await openai.images.edit({
+      const apiParams: OpenAI.Images.ImageEditParams = {
         model: "gpt-image-1",
-        image: openaiImageFile,
-        prompt,
+        image: allImageFiles,
+        prompt: finalPromptWithImageNotes,
+      };
+
+      // THIS CAN BE UPDATED LATER TO BE DYNAMIC. For testing use MEDIUM, production use HIGH.
+      const quality = "medium";
+
+      if (size) apiParams.size = size as OpenAI.Images.ImageEditParams["size"];
+      if (quality) apiParams.quality = quality;
+
+      console.info("[Generate] Calling OpenAI images.edit with params:", {
+        model: apiParams.model,
+        prompt: apiParams.prompt,
+        size: size,
+        quality: apiParams.quality,
+        image_count: allImageFiles.length,
       });
+
+      const result = await openaiClient.images.edit(apiParams);
+      console.log("[Generate] OpenAI generation successful.");
+
       const imageBase64 = result.data?.[0]?.b64_json;
-      if (!imageBase64) throw new Error("No image returned from OpenAI");
-      imageBuffer = Buffer.from(imageBase64, "base64");
-    } catch (error) {
-      console.error("[Generate] OpenAI image generation failed:", error);
+      if (!imageBase64)
+        throw new Error(
+          "No b64_json image data returned from OpenAI images.edit"
+        );
+      generatedImageBuffer = Buffer.from(imageBase64, "base64");
+    } catch (openaiError) {
+      console.error("[Generate] OpenAI API call failed:", openaiError);
+      const errorMessage =
+        openaiError instanceof Error ? openaiError.message : "OpenAI API error";
       await docRef.update({
-        status: "error" as GenerationStatus,
-        error:
-          error instanceof Error
-            ? error.message
-            : "OpenAI image generation failed",
+        status: "error",
+        error: `OpenAI Error: ${errorMessage}`,
         updatedAt: Timestamp.now(),
       });
-      throw error;
+      return res.status(500).json({
+        message: "Image generation failed during OpenAI processing.",
+        data: { error: errorMessage },
+      });
     }
 
-    if (!imageBuffer) {
-      const error = new Error("No image generated in the OpenAI response");
+    // --- 9. Upload Generated Image ---
+    console.log("[Generate] Uploading generated image...");
+    if (!generatedImageBuffer) {
+      console.error(
+        "[Generate] Generated image buffer is null after API call."
+      );
       await docRef.update({
-        status: "error" as GenerationStatus,
-        error: error.message,
+        status: "error",
+        error: "No image buffer received after OpenAI call",
         updatedAt: Timestamp.now(),
       });
-      throw error;
+      return res
+        .status(500)
+        .json({ message: "Image generation failed: No image data received." });
+    }
+    let generatedImageUrl: string;
+    try {
+      generatedImageUrl = await uploadToStorage(
+        generatedImageBuffer,
+        userId,
+        generationId
+      );
+    } catch (uploadError) {
+      console.error(
+        "[Generate] Failed to upload generated image:",
+        uploadError
+      );
+      const errorMessage =
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Failed to upload result";
+      await docRef.update({
+        status: "error",
+        error: `Upload Error: ${errorMessage}`,
+        updatedAt: Timestamp.now(),
+      });
+      return res.status(500).json({
+        message: "Image generation succeeded but upload failed.",
+        data: { error: errorMessage },
+      });
     }
 
-    // Upload generated image
-    const generatedImageUrl = await uploadToStorage(
-      imageBuffer,
-      userId,
-      generationId
-    );
-
-    // Create a versions array with the original version
-    const initialVersion = {
-      createdAt: Timestamp.now(),
-      imageUrl: generatedImageUrl,
-      status: "completed" as GenerationStatus,
+    // --- 10. Create Initial Version Entry ---
+    const now = Timestamp.now();
+    const initialVersion: GenerationVersion = {
       versionId: "original",
+      imageUrl: generatedImageUrl,
+      createdAt: now,
+      status: "completed",
+      promptUsed: finalPromptForOpenAI, // Record the potentially enhanced prompt
+      revisedPrompt: revisedPromptFromOpenAI, // Will likely be undefined for images.edit
     };
 
-    // Update Firestore document
+    // --- 11. Update Firestore Document (Final) ---
+    console.log("[Generate] Updating Firestore with final status and URL...");
     await docRef.update({
-      status: "completed" as GenerationStatus,
-      generatedImageUrl,
-      updatedAt: Timestamp.now(),
+      status: "completed",
+      generatedImageUrl: generatedImageUrl,
       versions: [initialVersion],
+      updatedAt: now,
+      error: null, // Clear any previous error
+      revisedPrompt: revisedPromptFromOpenAI || null, // Store revised prompt if available
     });
 
-    // Send response
+    console.log(
+      `[Generate] Process completed successfully for ${generationId}.`
+    );
+    // --- 12. Send Response ---
     res.status(200).json({
-      message: "Ad generated successfully",
-      data: {
-        imageUrl: generatedImageUrl,
-      },
-    } as GenerateResponseData);
+      message: "Image generation process initiated successfully.",
+    });
   } catch (error) {
-    console.error("[Generate] Error in generate route:", error);
+    console.error("[Generate] Unhandled error in generation process:", error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Unknown error in generation process";
+    try {
+      await docRef.update({
+        status: "error",
+        error: errorMessage,
+        updatedAt: Timestamp.now(),
+      });
+    } catch (updateError) {
+      console.error(
+        "[Generate] Failed to update Firestore with final error status:",
+        updateError
+      );
+    }
     res.status(500).json({
       message: "Error processing generation request",
-      data: {
-        error:
-          error instanceof Error ? error.message : "Unknown error occurred",
-      },
-    } as GenerateResponseData);
+      data: { error: errorMessage },
+    });
   }
 };
 
-router.post("/", handleGenerateRequest);
+router.post("/generate-image", handleGenerateRequest); // Ensure route matches frontend call
 
 export { router };
